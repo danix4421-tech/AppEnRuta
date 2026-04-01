@@ -14,8 +14,7 @@
             user-select: none;
         }
         
-        .is-collapsed .detalle-pedido, 
-        .is-collapsed .footer-pedido { display: none; }
+        .is-collapsed .detalle-pedido { display: none; }
         
         .is-finalized { border-color: #10b981; background-color: #f0fdf4; }
         .is-finalized .header-principal { opacity: 0.6; }
@@ -23,6 +22,7 @@
         .is-cancelled { border-color: #ef4444; background-color: #fef2f2; }
         .is-cancelled .header-principal { opacity: 0.6; }
         
+        /* Restaurada la barra de desplazamiento */
         .product-scroll::-webkit-scrollbar { height: 4px; }
         .product-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         
@@ -61,8 +61,12 @@
         const fmt = (v) => Number(v).toLocaleString('es-CL', { style: 'currency', currency: 'CLP' });
 
         async function sincronizarDatos() {
+            if(!confirm("¿Actualizar ruta y borrar el progreso guardado?")) return;
+            
             try {
-                const r = await fetch(URL_CSV);
+                localStorage.clear();
+                // Cache bust para asegurar datos nuevos del Sheets
+                const r = await fetch(`${URL_CSV}&t=${Date.now()}`);
                 const csv = await r.text();
                 const filas = csv.split(/\r?\n/).slice(1);
                 
@@ -92,6 +96,7 @@
                     if(pedidoActual && c[7]?.trim()) { 
                         pedidoActual.articulos.push({
                             idArt: c[7]?.trim(),
+                            bin: c[8]?.trim(),
                             cod: c[9]?.trim(),
                             precio: parseFloat(c[10]) || 0,
                             foto: c[20]?.trim() || "https://via.placeholder.com/150"
@@ -99,7 +104,8 @@
                     }
                 });
 
-                datosPedidos = listaPedidos.sort((a, b) => a.idRuta.localeCompare(b.idRuta));
+                datosPedidos = listaPedidos.sort((a, b) => a.idRuta.localeCompare(b.idRuta, undefined, {numeric: true}));
+                indiceExpandido = null;
                 renderizar();
             } catch (e) { alert("Error de conexión"); }
         }
@@ -117,16 +123,26 @@
         }
 
         function toggleCard(idx) {
+            // Si ya está expandido, al hacer clic arriba (botón volver) se cierra
             indiceExpandido = (indiceExpandido === idx) ? null : idx;
             renderizar();
+            window.scrollTo(0,0);
         }
 
         function renderizar() {
             const container = document.getElementById('contenedorRuta');
             
-            container.innerHTML = datosPedidos.map((p, idx) => {
+            // Lógica de visualización: Si hay uno expandido, ocultar el resto
+            const pedidosAMostrar = (indiceExpandido !== null) 
+                ? [datosPedidos[indiceExpandido]] 
+                : datosPedidos;
+
+            container.innerHTML = pedidosAMostrar.map((p, vIdx) => {
+                // Obtenemos el índice real del array global
+                const idx = (indiceExpandido !== null) ? indiceExpandido : vIdx;
+                
                 const storage = obtenerEstado(idx);
-                const isExpanded = indiceExpandido === idx;
+                const isExpanded = indiceExpandido !== null;
                 const pagado = storage.pagado || "";
                 const vuelto = pagado ? (parseFloat(pagado) - p.montoTotal) : 0;
                 const metodoPago = storage.metodo || "1";
@@ -141,17 +157,19 @@
                     
                     <div class="header-principal p-5 flex justify-between items-start cursor-pointer active:bg-slate-50" onclick="toggleCard(${idx})">
                         <div class="flex items-center gap-3">
-                            <span class="${storage.cancelado ? 'bg-red-500' : 'bg-slate-900'} text-white w-9 h-9 rounded-xl flex items-center justify-center font-black text-sm">${p.idRuta}</span>
+                            <span class="${storage.cancelado ? 'bg-red-500' : 'bg-slate-900'} text-white w-9 h-9 rounded-xl flex items-center justify-center font-black text-sm">
+                                ${isExpanded ? '←' : p.idRuta}
+                            </span>
                             <div>
                                 <h2 class="text-md font-bold text-slate-800 leading-tight">${p.cliente}</h2>
-                                <p class="text-[10px] font-medium text-slate-500 truncate w-32">${p.direccion}</p>
+                                <p class="text-[10px] font-medium text-slate-500 truncate w-60">${p.direccion}</p>
                                 <p class="text-[8px] font-bold text-indigo-600 uppercase mt-1 tracking-tighter">${p.horario}</p>
                             </div>
                         </div>
                         <div class="text-right">
                              <p class="text-[11px] font-black ${storage.cancelado ? 'text-red-500' : 'text-emerald-600'} leading-none">${fmt(p.montoTotal)}</p>
-                             <p class="text-[8px] font-bold text-slate-400 mt-0.5">Envío: ${fmt(p.envioPrecio)}</p>
-                             <div class="mt-2 flex justify-end" id="check-${idx}">
+                             <p class="text-[8px] font-bold text-slate-400 mt-1">Envío: ${fmt(p.envioPrecio)}</p>
+                             <div class="mt-2 flex justify-end">
                                 ${storage.finalizado ? '<svg class="w-4 h-4 text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>' : ''}
                                 ${storage.cancelado ? '<svg class="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path></svg>' : ''}
                              </div>
@@ -161,16 +179,12 @@
                     <div class="detalle-pedido border-t border-slate-100 bg-slate-50/30">
                         <div class="p-5">
                             <div class="mb-4 flex gap-2">
-                                <a href="tel:${p.contacto}" class="flex-1 flex items-center justify-center gap-2 bg-indigo-600 text-white p-2.5 rounded-xl font-bold text-xs active:scale-95 transition">
-                                    Llamar Cliente
-                                </a>
-                                <button onclick="window.open('https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.direccion)}')" class="flex-1 bg-white border border-slate-200 text-slate-700 p-2.5 rounded-xl font-bold text-xs active:scale-95 transition">
-                                    Ver en Mapa
-                                </button>
+                                <a href="tel:${p.contacto}" class="flex-1 flex items-center justify-center gap-2 bg-indigo-600 text-white p-2.5 rounded-xl font-bold text-xs active:scale-95 transition">Llamar</a>
+                                <button onclick="window.open('https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.direccion)}')" class="flex-1 bg-white border border-slate-200 text-slate-700 p-2.5 rounded-xl font-bold text-xs active:scale-95 transition">Ver Mapa</button>
                             </div>
 
                             <p class="text-[9px] font-black text-slate-400 uppercase mb-2">Artículos (Vendido/Check)</p>
-                            <div class="flex gap-3 overflow-x-auto product-scroll pb-2">
+                            <div class="flex gap-3 overflow-x-auto product-scroll pb-3">
                                 ${p.articulos.map((art, aIdx) => {
                                     const isChecked = checks.includes(aIdx);
                                     return `
@@ -178,10 +192,13 @@
                                          class="flex items-center gap-3 bg-white p-2.5 rounded-2xl min-w-[210px] border-2 transition-all cursor-pointer ${isChecked ? 'item-vendido border-emerald-500' : 'border-slate-100 shadow-sm'}">
                                         <img src="${art.foto}" class="w-10 h-10 rounded-lg object-cover bg-slate-50">
                                         <div class="flex-1">
+                                             <p class="text-xs font-bold text-slate-400 leading-tight inline">${art.idArt}</p>
+                                             <p class="text-xs font-bold text-slate-400 leading-tight inline">(${art.bin})</p>
+
                                             <p class="text-xs font-bold text-slate-700 leading-tight">${art.cod}</p>
                                             <p class="text-xs font-black text-indigo-600">${fmt(art.precio)}</p>
                                         </div>
-                                        ${isChecked ? '<span class="text-emerald-500 font-bold">✓</span>' : '<span class="text-slate-200 font-bold">○</span>'}
+                                        ${isChecked ? '<span class="text-emerald-500 font-bold text-lg">✓</span>' : '<span class="text-slate-200 font-bold text-lg">○</span>'}
                                     </div>
                                 `;}).join('')}
                             </div>
@@ -209,12 +226,8 @@
                             </div>
 
                             <div class="mt-4 flex gap-2">
-                                <button onclick="finalizar(${idx})" class="flex-[2] bg-emerald-500 text-white p-4 rounded-xl font-black text-xs uppercase tracking-widest active:scale-95 transition shadow-lg shadow-emerald-100">
-                                    Entregado
-                                </button>
-                                <button onclick="cancelarPedido(${idx})" class="flex-1 bg-red-100 text-red-600 p-4 rounded-xl font-black text-xs uppercase tracking-tighter active:scale-95 transition">
-                                    No Vendido
-                                </button>
+                                <button onclick="finalizar(${idx})" class="flex-[2] bg-emerald-500 text-white p-4 rounded-xl font-black text-xs uppercase tracking-widest active:scale-95 transition shadow-lg shadow-emerald-100">Entregado</button>
+                                <button onclick="cancelarPedido(${idx})" class="flex-1 bg-red-100 text-red-600 p-4 rounded-xl font-black text-xs uppercase tracking-tighter active:scale-95 transition">No Vendido</button>
                             </div>
                         </div>
                     </div>
@@ -236,7 +249,7 @@
 
         function actualizarPago(idx, valor) {
             guardarEstado(idx, 'pagado', valor);
-            // No renderizar aquí para no perder el foco del teclado mientras escribes
+            // No renderizar aquí para no perder foco
         }
 
         function finalizar(idx) {
