@@ -7,11 +7,20 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
     <title>Z-Logistics | AppEnRuta</title>
     <style>
+        :root { scroll-behavior: smooth; }
+        
         body { 
             font-family: 'Inter', sans-serif; 
             background-color: #f1f5f9; 
-            overscroll-behavior-y: contain; 
+            overscroll-behavior-y: none; 
             user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .app-container {
+            height: 100vh;
+            overflow-y: auto;
+            overscroll-behavior-y: none;
         }
         
         .is-collapsed .detalle-pedido { display: none; }
@@ -22,7 +31,6 @@
         .is-cancelled { border-color: #ef4444; background-color: #fef2f2; }
         .is-cancelled .header-principal { opacity: 0.6; }
         
-        /* Restaurada la barra de desplazamiento */
         .product-scroll::-webkit-scrollbar { height: 4px; }
         .product-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         
@@ -30,11 +38,18 @@
 
         input::-webkit-outer-spin-button,
         input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-        .card-anim { transition: all 0.2s ease-out; }
+
+    
+
+        @keyframes popIn {
+            from { opacity: 0; transform: translateX(-50%) scale(0.8); }
+            to { opacity: 1; transform: translateX(-50%) scale(1); }
+        }
     </style>
 </head>
-<body class="p-4 pb-20">
+<body>
 
+<div class="app-container p-4 pb-20">
     <header class="mb-6 flex justify-between items-center bg-white p-5 rounded-[2rem] shadow-sm border border-slate-200">
         <div>
             <h1 class="text-2xl font-black text-slate-900 tracking-tighter uppercase">Ruta de Calzado</h1>
@@ -47,231 +62,242 @@
         </button>
     </header>
 
-    <div id="contenedorRuta" class="space-y-4">
-        <div class="text-center py-20 text-slate-400 font-bold italic">Cargando datos...</div>
-    </div>
+    <div id="contenedorRuta" class="space-y-4"></div>
+</div>
 
-    <audio id="audioSuccess" src="https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3"></audio>
+<audio id="audioSuccess" src="https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3"></audio>
 
-    <script>
-        const URL_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQxmMtrLlKEH1uQUNmUvQxXUmFJQNQc46rwfOpKMNzJytrGDRxyMjo_S2DhQIDJmXTv1o6G2fvZQZgi/pub?gid=271238087&single=true&output=csv"; 
-        let datosPedidos = [];
-        let indiceExpandido = null; 
+<script>
+    const URL_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQxmMtrLlKEH1uQUNmUvQxXUmFJQNQc46rwfOpKMNzJytrGDRxyMjo_S2DhQIDJmXTv1o6G2fvZQZgi/pub?gid=271238087&single=true&output=csv"; 
+    
+    let datosPedidos = [];
+    let indiceExpandido = null;
 
-        const fmt = (v) => Number(v).toLocaleString('es-CL', { style: 'currency', currency: 'CLP' });
+    const fmt = (v) => Number(v).toLocaleString('es-CL', { style: 'currency', currency: 'CLP' });
 
-        async function sincronizarDatos() {
-            if(!confirm("¿Actualizar ruta y borrar el progreso guardado?")) return;
-            
-            try {
-                localStorage.clear();
-                // Cache bust para asegurar datos nuevos del Sheets
-                const r = await fetch(`${URL_CSV}&t=${Date.now()}`);
-                const csv = await r.text();
-                const filas = csv.split(/\r?\n/).slice(1);
-                
-                let listaPedidos = [];
-                let pedidoActual = null;
 
-                filas.forEach((l, index) => {
-                    const c = l.split(",");
-                    const nombreCliente = c[14]?.trim(); 
 
-                    if(nombreCliente && nombreCliente !== "") {
-                        pedidoActual = {
-                            id: index,
-                            idRuta: c[18]?.trim() || "Z",
-                            horario: c[19]?.trim() || "S/H",
-                            cliente: nombreCliente,
-                            direccion: c[15]?.trim(),
-                            contacto: c[16]?.trim(),
-                            tipoPagoOriginal: c[13]?.trim(),
-                            envioPrecio: parseFloat(c[11]) || 0,
-                            montoTotal: parseFloat(c[12]) || 0,
-                            articulos: []
-                        };
-                        listaPedidos.push(pedidoActual);
-                    }
-
-                    if(pedidoActual && c[7]?.trim()) { 
-                        pedidoActual.articulos.push({
-                            idArt: c[7]?.trim(),
-                            bin: c[8]?.trim(),
-                            cod: c[9]?.trim(),
-                            precio: parseFloat(c[10]) || 0,
-                            foto: c[20]?.trim() || "https://via.placeholder.com/150"
-                        });
-                    }
-                });
-
-                datosPedidos = listaPedidos.sort((a, b) => a.idRuta.localeCompare(b.idRuta, undefined, {numeric: true}));
-                indiceExpandido = null;
-                renderizar();
-            } catch (e) { alert("Error de conexión"); }
-        }
-
-        function guardarEstado(idx, campo, valor) {
-            const key = `pedido_${datosPedidos[idx].cliente}_${datosPedidos[idx].id}`;
-            let estado = JSON.parse(localStorage.getItem(key)) || {};
-            estado[campo] = valor;
-            localStorage.setItem(key, JSON.stringify(estado));
-        }
-
-        function obtenerEstado(idx) {
-            const key = `pedido_${datosPedidos[idx].cliente}_${datosPedidos[idx].id}`;
-            return JSON.parse(localStorage.getItem(key)) || {};
-        }
-
-        function toggleCard(idx) {
-            // Si ya está expandido, al hacer clic arriba (botón volver) se cierra
-            indiceExpandido = (indiceExpandido === idx) ? null : idx;
+    // --- LÓGICA DE DATOS ---
+    function inicializarApp() {
+        const guardados = localStorage.getItem('backup_pedidos');
+        if (guardados) {
+            datosPedidos = JSON.parse(guardados);
             renderizar();
-            window.scrollTo(0,0);
+        } else {
+            document.getElementById('contenedorRuta').innerHTML = `
+                <div class="text-center py-20">
+                    <p class="text-slate-400 font-bold mb-4 text-sm">No hay datos en memoria local.</p>
+                    <button onclick="sincronizarDatos()" class="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold">Sincronizar ahora</button>
+                </div>`;
         }
+    }
 
-        function renderizar() {
-            const container = document.getElementById('contenedorRuta');
+    async function sincronizarDatos() {
+        if(!confirm("Esto actualizará la lista y mantendrá el estado de tus entregas. ¿Continuar?")) return;
+        
+        try {
+            const r = await fetch(`${URL_CSV}&t=${Date.now()}`);
+            const csv = await r.text();
+            const filas = csv.split(/\r?\n/).slice(1);
             
-            // Lógica de visualización: Si hay uno expandido, ocultar el resto
-            const pedidosAMostrar = (indiceExpandido !== null) 
-                ? [datosPedidos[indiceExpandido]] 
-                : datosPedidos;
+            let listaNuevos = [];
+            let pedidoActual = null;
 
-            container.innerHTML = pedidosAMostrar.map((p, vIdx) => {
-                // Obtenemos el índice real del array global
-                const idx = (indiceExpandido !== null) ? indiceExpandido : vIdx;
-                
-                const storage = obtenerEstado(idx);
-                const isExpanded = indiceExpandido !== null;
-                const pagado = storage.pagado || "";
-                const vuelto = pagado ? (parseFloat(pagado) - p.montoTotal) : 0;
-                const metodoPago = storage.metodo || "1";
-                const checks = storage.checks || [];
+            filas.forEach((l, index) => {
+                const c = l.split(",");
+                const nombreCliente = c[14]?.trim(); 
 
-                let estadoClase = isExpanded ? "" : "is-collapsed";
-                if(storage.finalizado) estadoClase += " is-finalized";
-                if(storage.cancelado) estadoClase += " is-cancelled";
+                if(nombreCliente && nombreCliente !== "") {
+                    pedidoActual = {
+                        id: index,
+                        idRuta: c[18]?.trim() || "Z",
+                        horario: c[19]?.trim() || "S/H",
+                        cliente: nombreCliente,
+                        direccion: c[15]?.trim(),
+                        contacto: c[16]?.trim(),
+                        tipoPagoOriginal: c[13]?.trim(),
+                        envioPrecio: parseFloat(c[11]) || 0,
+                        montoTotal: parseFloat(c[12]) || 0,
+                        articulos: []
+                    };
+                    listaNuevos.push(pedidoActual);
+                }
 
-                return `
-                <div class="card-anim bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden ${estadoClase}" id="entrega-${idx}">
-                    
-                    <div class="header-principal p-5 flex justify-between items-start cursor-pointer active:bg-slate-50" onclick="toggleCard(${idx})">
-                        <div class="flex items-center gap-3">
-                            <span class="${storage.cancelado ? 'bg-red-500' : 'bg-slate-900'} text-white w-9 h-9 rounded-xl flex items-center justify-center font-black text-sm">
-                                ${isExpanded ? '←' : p.idRuta}
-                            </span>
-                            <div>
-                                <h2 class="text-md font-bold text-slate-800 leading-tight">${p.cliente}</h2>
-                                <p class="text-[10px] font-medium text-slate-500 truncate w-60">${p.direccion}</p>
-                                <p class="text-[8px] font-bold text-indigo-600 uppercase mt-1 tracking-tighter">${p.horario}</p>
-                            </div>
-                        </div>
-                        <div class="text-right">
-                             <p class="text-[11px] font-black ${storage.cancelado ? 'text-red-500' : 'text-emerald-600'} leading-none">${fmt(p.montoTotal)}</p>
-                             <p class="text-[8px] font-bold text-slate-400 mt-1">Envío: ${fmt(p.envioPrecio)}</p>
-                             <div class="mt-2 flex justify-end">
-                                ${storage.finalizado ? '<svg class="w-4 h-4 text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>' : ''}
-                                ${storage.cancelado ? '<svg class="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path></svg>' : ''}
-                             </div>
+                if(pedidoActual && c[7]?.trim()) { 
+                    pedidoActual.articulos.push({
+                        idArt: c[7]?.trim(),
+                        bin: c[8]?.trim(),
+                        cod: c[9]?.trim(),
+                        precio: parseFloat(c[10]) || 0,
+                        foto: c[20]?.trim() || "https://via.placeholder.com/150"
+                    });
+                }
+            });
+
+            datosPedidos = listaNuevos.sort((a, b) => a.idRuta.localeCompare(b.idRuta, undefined, {numeric: true}));
+            localStorage.setItem('backup_pedidos', JSON.stringify(datosPedidos));
+            indiceExpandido = null;
+            renderizar();
+        } catch (e) { alert("Error de red. Verifica tu conexión."); }
+    }
+
+    function guardarEstado(idx, campo, valor) {
+        datosPedidos[idx][campo] = valor;
+        localStorage.setItem('backup_pedidos', JSON.stringify(datosPedidos));
+    }
+
+    function toggleCard(idx) {
+        indiceExpandido = (indiceExpandido === idx) ? null : idx;
+        renderizar();
+        if(indiceExpandido !== null) window.scrollTo(0,0);
+    }
+
+    function renderizar() {
+        const container = document.getElementById('contenedorRuta');
+        const pedidosAMostrar = (indiceExpandido !== null) ? [datosPedidos[indiceExpandido]] : datosPedidos;
+
+        if(datosPedidos.length === 0) return;
+
+        container.innerHTML = pedidosAMostrar.map((p, vIdx) => {
+            const idx = (indiceExpandido !== null) ? indiceExpandido : vIdx;
+            
+            const isExpanded = indiceExpandido !== null;
+            const pagado = p.pagado || "";
+            const vuelto = pagado ? (parseFloat(pagado) - p.montoTotal) : 0;
+            const metodoPago = p.metodo || "1";
+            const checks = p.checks || [];
+
+            let estadoClase = isExpanded ? "" : "is-collapsed";
+            if(p.finalizado) estadoClase += " is-finalized";
+            if(p.cancelado) estadoClase += " is-cancelled";
+
+            return `
+            <div class="card-anim bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden ${estadoClase}">
+                <div class="header-principal p-5 flex justify-between items-start cursor-pointer active:bg-slate-50" onclick="toggleCard(${idx})">
+                    <div class="flex items-center gap-3">
+                        <span class="${p.cancelado ? 'bg-red-500' : 'bg-slate-900'} text-white w-9 h-9 rounded-xl flex items-center justify-center font-black text-sm">
+                            ${isExpanded ? '←' : p.idRuta}
+                        </span>
+                        <div>
+                            <h2 class="text-md font-bold text-slate-800 leading-tight">${p.cliente}</h2>
+                            <p class="text-[10px] font-medium text-slate-500 truncate ${isExpanded ? '' : 'w-40'}">${p.direccion}</p>
+                            <p class="text-[8px] font-bold text-indigo-600 uppercase mt-1 tracking-tighter">${p.horario}</p>
                         </div>
                     </div>
+                    <div class="text-right">
+                         <p class="text-[11px] font-black ${p.cancelado ? 'text-red-500' : 'text-emerald-600'} leading-none">${fmt(p.montoTotal)}</p>
+                         <p class="text-[8px] font-bold text-slate-400 mt-1">Envío: ${fmt(p.envioPrecio)}</p>
+                         <div class="mt-2 flex justify-end">
+                                ${p.finalizado ? '<svg class="w-4 h-4 text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>' : ''}
+                                ${p.cancelado ? '<svg class="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path></svg>' : ''}
+                             </div>
+                    </div>
+                </div>
 
-                    <div class="detalle-pedido border-t border-slate-100 bg-slate-50/30">
-                        <div class="p-5">
-                            <div class="mb-4 flex gap-2">
-                                <a href="tel:${p.contacto}" class="flex-1 flex items-center justify-center gap-2 bg-indigo-600 text-white p-2.5 rounded-xl font-bold text-xs active:scale-95 transition">Llamar</a>
-                                <button onclick="window.open('https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.direccion)}')" class="flex-1 bg-white border border-slate-200 text-slate-700 p-2.5 rounded-xl font-bold text-xs active:scale-95 transition">Ver Mapa</button>
-                            </div>
+                <div class="detalle-pedido border-t border-slate-100 bg-slate-50/30">
+                    <div class="p-5">
+                        <div class="mb-4 flex gap-2">
+                            <a href="tel:${p.contacto}" class="flex-1 flex items-center justify-center gap-2 bg-indigo-600 text-white p-2.5 rounded-xl font-bold text-xs">Llamar</a>
+                            <button onclick="window.open('https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.direccion)}')" class="flex-1 bg-white border border-slate-200 text-slate-700 p-2.5 rounded-xl font-bold text-xs">Mapa</button>
+                        </div>
 
-                            <p class="text-[9px] font-black text-slate-400 uppercase mb-2">Artículos (Vendido/Check)</p>
-                            <div class="flex gap-3 overflow-x-auto product-scroll pb-3">
-                                ${p.articulos.map((art, aIdx) => {
-                                    const isChecked = checks.includes(aIdx);
-                                    return `
-                                    <div onclick="toggleArticulo(${idx}, ${aIdx})" 
-                                         class="flex items-center gap-3 bg-white p-2.5 rounded-2xl min-w-[210px] border-2 transition-all cursor-pointer ${isChecked ? 'item-vendido border-emerald-500' : 'border-slate-100 shadow-sm'}">
-                                        <img src="${art.foto}" class="w-10 h-10 rounded-lg object-cover bg-slate-50">
-                                        <div class="flex-1">
-                                             <p class="text-xs font-bold text-slate-400 leading-tight inline">${art.idArt}</p>
-                                             <p class="text-xs font-bold text-slate-400 leading-tight inline">(${art.bin})</p>
 
-                                            <p class="text-xs font-bold text-slate-700 leading-tight">${art.cod}</p>
-                                            <p class="text-xs font-black text-indigo-600">${fmt(art.precio)}</p>
-                                        </div>
-                                        ${isChecked ? '<span class="text-emerald-500 font-bold text-lg">✓</span>' : '<span class="text-slate-200 font-bold text-lg">○</span>'}
-                                    </div>
-                                `;}).join('')}
-                            </div>
-                            
-                            <div class="mt-4 grid grid-cols-2 gap-3 bg-white p-4 rounded-2xl border border-slate-200">
-                                <div class="col-span-2">
-                                    <label class="text-[9px] font-black text-slate-400 uppercase">Método de Pago</label>
-                                    <select onchange="guardarEstado(${idx}, 'metodo', this.value)" class="w-full mt-1 bg-slate-50 border-none rounded-lg p-2 text-xs font-bold text-slate-700">
-                                        <option value="1" ${metodoPago=="1"?'selected':''}>1. Efectivo</option>
-                                        <option value="2" ${metodoPago=="2"?'selected':''}>2. Cta Rut (Da)</option>
-                                        <option value="3" ${metodoPago=="3"?'selected':''}>3. Cta TAPP (Da)</option>
-                                        <option value="4" ${metodoPago=="4"?'selected':''}>4. Cta Rut (Lo)</option>
-                                        <option value="5" ${metodoPago=="5"?'selected':''}>5. Cta TAPP (Lo)</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="text-[9px] font-black text-slate-400 uppercase">Pagado</label>
-                                    <input type="number" oninput="actualizarPago(${idx}, this.value)" value="${pagado}" placeholder="$" 
-                                           class="w-full mt-1 bg-slate-50 border-none rounded-lg p-2 text-xs font-bold text-emerald-600">
-                                </div>
-                                <div>
-                                    <label class="text-[9px] font-black text-slate-400 uppercase">Vuelto</label>
-                                    <div class="mt-2 text-xs font-black text-orange-500">${vuelto > 0 ? fmt(vuelto) : "$0"}</div>
-                                </div>
-                            </div>
 
-                            <div class="mt-4 flex gap-2">
-                                <button onclick="finalizar(${idx})" class="flex-[2] bg-emerald-500 text-white p-4 rounded-xl font-black text-xs uppercase tracking-widest active:scale-95 transition shadow-lg shadow-emerald-100">Entregado</button>
-                                <button onclick="cancelarPedido(${idx})" class="flex-1 bg-red-100 text-red-600 p-4 rounded-xl font-black text-xs uppercase tracking-tighter active:scale-95 transition">No Vendido</button>
+          <div class="flex gap-3 overflow-x-auto product-scroll pb-4 px-2">
+    ${p.articulos.map((art, aIdx) => {
+        const isChecked = checks.includes(aIdx);
+        return `
+        <div onclick="toggleArticulo(${idx}, ${aIdx})" 
+             class="flex items-center gap-5 bg-white p-4 rounded-3xl min-w-[260px] border-2 transition-all ${isChecked ? 'item-vendido border-emerald-500' : 'border-slate-100 shadow-sm'}">
+            
+            <img src="${art.foto}" 
+                 class="w-32 h-32 rounded-2xl object-cover bg-slate-100 border border-slate-200 shadow-sm flex-shrink-0">
+
+            <div class="flex-1">
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">${art.idArt}  (${art.bin})</p>
+                <p class="text-base font-black text-slate-800 leading-tight mb-1">${art.cod}</p>
+                <p class="text-sm font-black text-indigo-600">${fmt(art.precio)}</p>
+            </div>
+
+            <div class="flex flex-col items-center">
+                ${isChecked ? 
+                    '<span class="text-emerald-500 font-bold text-3xl">✓</span>' : 
+                    '<span class="text-slate-200 font-bold text-3xl">○</span>'
+                }
+            </div>
+        </div>
+    `;}).join('')}
+</div>
+                        
+                        <div class="mt-4 grid grid-cols-2 gap-3 bg-white p-4 rounded-2xl border border-slate-200">
+                            <div class="col-span-2">
+                                <label class="text-[9px] font-black text-slate-400 uppercase">Método de Pago</label>
+                                <select onchange="guardarEstado(${idx}, 'metodo', this.value)" class="w-full mt-1 bg-slate-50 border-none rounded-lg p-2 text-xs font-bold text-slate-700">
+                                    <option value="1" ${metodoPago=="1"?'selected':''}>1. Efectivo</option>
+                                    <option value="2" ${metodoPago=="2"?'selected':''}>2. Cta Rut (Da)</option>
+                                    <option value="3" ${metodoPago=="3"?'selected':''}>3. Cta TAPP (Da)</option>
+                                    <option value="4" ${metodoPago=="4"?'selected':''}>4. Cta Rut (Lo)</option>
+                                    <option value="5" ${metodoPago=="5"?'selected':''}>5. Cta TAPP (Lo)</option>
+                                </select>
                             </div>
+                            <div>
+                                <label class="text-[9px] font-black text-slate-400 uppercase">Pagado</label>
+                                <input type="number" oninput="actualizarPago(${idx}, this.value)" value="${pagado}" placeholder="$ Pagado" 
+                                       class="w-full mt-1 bg-slate-50 border-none rounded-lg p-2 text-xs font-bold text-emerald-600">
+                            </div>
+                            <div>
+                                <label class="text-[9px] font-black text-slate-400 uppercase">Vuelto</label>
+                                <div class="mt-2 text-xs font-black text-orange-500">${vuelto > 0 ? fmt(vuelto) : "$0"}</div>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 flex gap-2">
+                            <button onclick="finalizar(${idx})" class="flex-[2] bg-emerald-500 text-white p-4 rounded-xl font-black text-xs uppercase shadow-lg shadow-emerald-100">Entregado</button>
+                            <button onclick="cancelarPedido(${idx})" class="flex-1 bg-red-100 text-red-600 p-4 rounded-xl font-black text-xs uppercase">No Recibe</button>
                         </div>
                     </div>
                 </div>
-            `;}).join('');
-        }
+            </div>
+        `;}).join('');
+    }
 
-        function toggleArticulo(pIdx, aIdx) {
-            const storage = obtenerEstado(pIdx);
-            let checks = storage.checks || [];
-            if(checks.includes(aIdx)) {
-                checks = checks.filter(i => i !== aIdx);
-            } else {
-                checks.push(aIdx);
-            }
-            guardarEstado(pIdx, 'checks', checks);
-            renderizar(); 
+    function toggleArticulo(pIdx, aIdx) {
+        let checks = datosPedidos[pIdx].checks || [];
+        if(checks.includes(aIdx)) {
+            checks = checks.filter(i => i !== aIdx);
+        } else {
+            checks.push(aIdx);
         }
+        guardarEstado(pIdx, 'checks', checks);
+        renderizar(); 
+    }
 
-        function actualizarPago(idx, valor) {
-            guardarEstado(idx, 'pagado', valor);
-            // No renderizar aquí para no perder foco
+    function actualizarPago(idx, valor) {
+        guardarEstado(idx, 'pagado', valor);
+    }
+
+    function finalizar(idx) {
+        if(confirm("¿Confirmar entrega?")) {
+            document.getElementById('audioSuccess').play().catch(()=>{});
+            guardarEstado(idx, 'finalizado', true);
+            guardarEstado(idx, 'cancelado', false);
+            indiceExpandido = null;
+            renderizar();
         }
+    }
 
-        function finalizar(idx) {
-            if(confirm("¿Confirmar entrega y pago?")) {
-                document.getElementById('audioSuccess').play().catch(()=>{});
-                guardarEstado(idx, 'finalizado', true);
-                guardarEstado(idx, 'cancelado', false);
-                indiceExpandido = null;
-                renderizar();
-            }
+    function cancelarPedido(idx) {
+        if(confirm("¿Marcar como NO vendido?")) {
+            guardarEstado(idx, 'cancelado', true);
+            guardarEstado(idx, 'finalizado', false);
+            indiceExpandido = null;
+            renderizar();
         }
+    }
 
-        function cancelarPedido(idx) {
-            if(confirm("¿Marcar como pedido NO completado?")) {
-                guardarEstado(idx, 'cancelado', true);
-                guardarEstado(idx, 'finalizado', false);
-                indiceExpandido = null;
-                renderizar();
-            }
-        }
+    
 
-        window.onload = sincronizarDatos;
-    </script>
+    window.onload = inicializarApp;
+</script>
 </body>
 </html>
