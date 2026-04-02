@@ -4,14 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <title>Z-Logistics | AppEnRuta</title>
     <style>
         :root { scroll-behavior: smooth; }
         
         body { 
             font-family: 'Inter', sans-serif; 
-            background-color: #f1f5f9; 
+            background-color: #f1f5f9; /* Slate 100 */
             overscroll-behavior-y: none; 
             user-select: none;
             -webkit-tap-highlight-color: transparent;
@@ -23,34 +23,55 @@
             overscroll-behavior-y: none;
         }
         
+        /* Estilos para colapsar/expandir tarjetas */
         .is-collapsed .detalle-pedido { display: none; }
         
-        .is-finalized { border-color: #10b981; background-color: #f0fdf4; }
+        /* Estados de finalización */
+        .is-finalized { border-color: #10b981; background-color: #f0fdf4; } /* Emerald */
         .is-finalized .header-principal { opacity: 0.6; }
 
-        .is-cancelled { border-color: #ef4444; background-color: #fef2f2; }
+        .is-cancelled { border-color: #ef4444; background-color: #fef2f2; } /* Red */
         .is-cancelled .header-principal { opacity: 0.6; }
         
+        /* Scrollbar sutil para productos */
         .product-scroll::-webkit-scrollbar { height: 4px; }
         .product-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         
+        /* Estilo visual para ítem seleccionado/vendido */
         .item-vendido { border-color: #10b981 !important; background-color: #ecfdf5 !important; transform: scale(0.98); }
 
+        /* Quitar flechas de input number */
         input::-webkit-outer-spin-button,
         input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
-    
+        /* Animación suave para detalles */
+        .detalle-pedido {
+            animation: slideDown 0.3s ease-out;
+        }
 
-        @keyframes popIn {
-            from { opacity: 0; transform: translateX(-50%) scale(0.8); }
-            to { opacity: 1; transform: translateX(-50%) scale(1); }
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        
+        /* Estilo para el triángulo del details (Arqueo) */
+        summary::-webkit-details-marker { display: none; }
+        summary::after {
+            content: '→';
+            font-weight: 900;
+            color: #6366f1; /* Indigo 500 */
+            transition: transform 0.3s;
+        }
+        details[open] summary::after {
+            transform: rotate(90deg);
         }
     </style>
 </head>
 <body>
 
 <div class="app-container p-4 pb-20">
-    <header class="mb-6 flex justify-between items-center bg-white p-5 rounded-[2rem] shadow-sm border border-slate-200">
+    <header class="mb-5 flex justify-between items-center bg-white p-5 rounded-[2rem] shadow-sm border border-slate-200">
         <div>
             <h1 class="text-2xl font-black text-slate-900 tracking-tighter uppercase">Ruta de Calzado</h1>
             <p class="text-[10px] font-bold text-indigo-600 uppercase tracking-widest">Panel de Reparto</p>
@@ -70,12 +91,20 @@
 <script>
     const URL_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQxmMtrLlKEH1uQUNmUvQxXUmFJQNQc46rwfOpKMNzJytrGDRxyMjo_S2DhQIDJmXTv1o6G2fvZQZgi/pub?gid=271238087&single=true&output=csv"; 
     
+    // Nombres amigables para métodos de pago
+    const NOMBRES_METODOS = {
+        "1": "Efectivo",
+        "2": "Cta Rut (Daniel)",
+        "3": "Cta TAPP (Daniel)",
+        "4": "Cta Rut (Lore)",
+        "5": "Cta TAPP (Lore)"
+    };
+
     let datosPedidos = [];
     let indiceExpandido = null;
 
+    // Formateador de moneda (CLP)
     const fmt = (v) => Number(v).toLocaleString('es-CL', { style: 'currency', currency: 'CLP' });
-
-
 
     // --- LÓGICA DE DATOS ---
     function inicializarApp() {
@@ -85,14 +114,17 @@
             renderizar();
         } else {
             document.getElementById('contenedorRuta').innerHTML = `
-                <div class="text-center py-20">
-                    <p class="text-slate-400 font-bold mb-4 text-sm">No hay datos en memoria local.</p>
-                    <button onclick="sincronizarDatos()" class="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold">Sincronizar ahora</button>
+                <div class="text-center py-20 bg-white rounded-3xl border border-slate-200 shadow-sm p-10">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-indigo-200 mx-auto mb-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                    <p class="text-slate-500 font-medium mb-6 text-sm">No hay datos de ruta cargados en este dispositivo.</p>
+                    <button onclick="sincronizarDatos()" class="bg-indigo-600 text-white px-8 py-3.5 rounded-2xl font-bold shadow-lg shadow-indigo-100 active:scale-95 transition-all">Sincronizar ahora</button>
                 </div>`;
         }
     }
 
-    async function sincronizarDatos() {
+   async function sincronizarDatos() {
         if(!confirm("Esto actualizará la lista y mantendrá el estado de tus entregas. ¿Continuar?")) return;
         
         try {
@@ -141,163 +173,409 @@
         } catch (e) { alert("Error de red. Verifica tu conexión."); }
     }
 
+    // Guardar estado local y en localStorage
     function guardarEstado(idx, campo, valor) {
         datosPedidos[idx][campo] = valor;
         localStorage.setItem('backup_pedidos', JSON.stringify(datosPedidos));
     }
 
+
+    // Expandir/Colapsar tarjeta
     function toggleCard(idx) {
-        indiceExpandido = (indiceExpandido === idx) ? null : idx;
-        renderizar();
-        if(indiceExpandido !== null) window.scrollTo(0,0);
+        if(indiceExpandido === idx) {
+            indiceExpandido = null;
+            renderizar();
+            // Scroll suave de vuelta a la posición (aproximada ya que renderiza todo)
+            setTimeout(() => {
+                const card = document.querySelectorAll('.card-pedido')[idx];
+                if(card) card.scrollIntoView({behavior: 'smooth', block: 'center'});
+            }, 100);
+        } else {
+            indiceExpandido = idx;
+            renderizar();
+            window.scrollTo(0,0);
+        }
     }
 
+    // --- FUNCIÓN DE RENDERIZADO PRINCIPAL ---
     function renderizar() {
         const container = document.getElementById('contenedorRuta');
+        if(!datosPedidos || datosPedidos.length === 0) return;
+
+        // --- LÓGICA DE ARQUEO DE CAJA ---
+        const totalesPorMetodo = { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0 };
+        let granTotalRuta = 0;
+
+        datosPedidos.forEach(p => {
+            // Solo sumar pedidos entregados correctamente
+            if (p.finalizado && !p.cancelado) {
+                const checks = p.checks || [];
+                // Calcular Monto Real (artículos marcados + envío)
+                const sumaArticulos = p.articulos.reduce((acc, art, i) => {
+                    return checks.includes(i) ? acc + art.precio : acc;
+                }, 0);
+                const montoReal = sumaArticulos + p.envioPrecio;
+                
+                const m = p.metodo || "1";
+                totalesPorMetodo[m] += montoReal;
+                granTotalRuta += montoReal;
+            }
+        });
+
+        // 2. Cálculos de Gastos
+    const listaGastos = JSON.parse(localStorage.getItem('gastos_ruta')) || [];
+    const totalGastos = listaGastos.reduce((acc, g) => acc + g.monto, 0);
+
+
+        // NUEVO: Obtener fondo y calcular suma de efectivo
+    const fondoInicial = parseFloat(localStorage.getItem('fondo_inicial')) || 0;
+    const efectivoMasFondo = totalesPorMetodo["1"] + fondoInicial;
+
+
+
+
+       // --- RENDERIZADO DEL PANEL DE ARQUEO ---
+    let htmlArqueo = `
+        <details class="mb-5 bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+            <summary class="p-5 list-none cursor-pointer flex justify-between items-center active:bg-slate-50">
+                <div class="flex items-center gap-4">
+                    <div class="bg-emerald-50 text-emerald-600 p-3 rounded-xl border">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                    <div>
+                        <p class="text-[10px] text-slate-400 tracking-widest">Resumen Arqueo</p>
+                        <h3 class="text-xl font-black text-emerald-600">${fmt(granTotalRuta)} <span class="text-xs font-medium text-slate-500">en Ruta</span></h3>
+                    </div>
+                </div>
+            </summary>
+            
+            <div class="px-5 pb-5 pt-2 space-y-3 border-t border-slate-100 bg-slate-50/50">
+                <div class="flex justify-between items-center bg-indigo-50/50 p-3 rounded-xl border border-indigo-100">
+                    <span class="text-xs font-bold text-indigo-700">Fondo Inicial</span>
+                    <div class="relative">
+                        <span class="absolute left-1 top-1/2 -translate-y-1/2 text-[10px] font-bold text-indigo-400">$</span>
+                        <input type="number" id="input-fondo" 
+                            onchange="guardarFondo(this.value)" 
+                            value="${localStorage.getItem('fondo_inicial') || 0}"
+                            class="w-24 text-right bg-white border border-indigo-100 rounded-lg p-1.5 pl-4 text-xs font-black text-indigo-700 outline-none focus:ring-1 focus:ring-indigo-400">
+                    </div>
+                </div>
+
+                ${Object.keys(totalesPorMetodo).map(key => `
+                    <div class="flex justify-between items-center bg-white p-3 rounded-xl border border-slate-100">
+                        <span class="text-xs font-semibold text-slate-600">${NOMBRES_METODOS[key]}</span>
+                        <span class="text-sm font-bold ${totalesPorMetodo[key] > 0 ? 'text-emerald-600' : 'text-slate-400'}">
+                            ${fmt(totalesPorMetodo[key])}
+                        </span>
+                    </div>
+                `).join('')}
+
+                <div class="pt-3 mt-4 border-t border-slate-200 flex justify-between items-center px-1">
+                    <span class="text-xs font-bold uppercase text-slate-500 tracking-wider">Total Ruta (Ventas)</span>
+                    <span class="text-lg font-black text-indigo-700">${fmt(granTotalRuta)}</span>
+                </div>
+
+                <div class="pt-2 flex justify-between items-center px-1 border-t border-dashed border-slate-200">
+                    <span class="text-[10px] font-black uppercase text-emerald-600 tracking-wider">Efectivo Total + Fondo</span>
+                    <span id="arqueo-efectivo-fondo" class="text-md font-black text-emerald-700">${fmt(efectivoMasFondo)}</span>
+                </div>
+            </div>
+        </details>
+    `;
+
+        // --- RENDERIZADO DE PEDIDOS ---
         const pedidosAMostrar = (indiceExpandido !== null) ? [datosPedidos[indiceExpandido]] : datosPedidos;
+        
+        const htmlPedidos = pedidosAMostrar.map((p, vIdx) => {
 
-        if(datosPedidos.length === 0) return;
 
-        container.innerHTML = pedidosAMostrar.map((p, vIdx) => {
+            
+            // Usar el índice real del array original
             const idx = (indiceExpandido !== null) ? indiceExpandido : vIdx;
             
             const isExpanded = indiceExpandido !== null;
             const pagado = p.pagado || "";
-            const vuelto = pagado ? (parseFloat(pagado) - p.montoTotal) : 0;
-            const metodoPago = p.metodo || "1";
             const checks = p.checks || [];
 
+            // --- CÁLCULO DINÁMICO DEL PEDIDO ---
+            // Sumamos solo los artículos marcados como vendidos
+            const sumaArticulosPedido = p.articulos.reduce((acc, art, i) => {
+                return checks.includes(i) ? acc + art.precio : acc;
+            }, 0);
+
+            const montoRealPedido = sumaArticulosPedido + p.envioPrecio;
+            const vuelto = pagado ? (parseFloat(pagado) - montoRealPedido) : 0;
+            // -----------------------------------
+
+            const metodoPago = p.metodo || "1";
             let estadoClase = isExpanded ? "" : "is-collapsed";
             if(p.finalizado) estadoClase += " is-finalized";
             if(p.cancelado) estadoClase += " is-cancelled";
 
             return `
-            <div class="card-anim bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden ${estadoClase}">
+            <div class="card-pedido card-anim bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden ${estadoClase}">
                 <div class="header-principal p-5 flex justify-between items-start cursor-pointer active:bg-slate-50" onclick="toggleCard(${idx})">
                     <div class="flex items-center gap-3">
-                        <span class="${p.cancelado ? 'bg-red-500' : 'bg-slate-900'} text-white w-9 h-9 rounded-xl flex items-center justify-center font-black text-sm">
+                        <span class="${p.cancelado ? 'bg-red-500' : 'bg-slate-900'} text-white w-9 h-9 rounded-xl flex items-center justify-center font-black text-sm flex-shrink-0">
                             ${isExpanded ? '←' : p.idRuta}
                         </span>
                         <div>
                             <h2 class="text-md font-bold text-slate-800 leading-tight">${p.cliente}</h2>
-                            <p class="text-[10px] font-medium text-slate-500 truncate ${isExpanded ? '' : 'w-40'}">${p.direccion}</p>
+                            <p class="text-[11px] font-medium text-slate-500 truncate ${isExpanded ? '' : 'w-52'}">${p.direccion}</p>
                             <p class="text-[8px] font-bold text-indigo-600 uppercase mt-1 tracking-tighter">${p.horario}</p>
                         </div>
                     </div>
-                    <div class="text-right">
-                         <p class="text-[11px] font-black ${p.cancelado ? 'text-red-500' : 'text-emerald-600'} leading-none">${fmt(p.montoTotal)}</p>
+                    <div class="text-right flex-shrink-0 ml-2">
+                         <p class="text-[11px] font-black ${p.cancelado ? 'text-red-500' : 'text-emerald-600'} leading-none">
+                            ${fmt(montoRealPedido)}
+                         </p>
                          <p class="text-[8px] font-bold text-slate-400 mt-1">Envío: ${fmt(p.envioPrecio)}</p>
-                         <div class="mt-2 flex justify-end">
-                                ${p.finalizado ? '<svg class="w-4 h-4 text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>' : ''}
+                         <div class="mt-2 flex justify-end gap-0.5">
+                                ${p.finalizado && !p.cancelado ? '<svg class="w-4 h-4 text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>' : ''}
                                 ${p.cancelado ? '<svg class="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path></svg>' : ''}
-                             </div>
+                         </div>
                     </div>
                 </div>
 
                 <div class="detalle-pedido border-t border-slate-100 bg-slate-50/30">
                     <div class="p-5">
-                        <div class="mb-4 flex gap-2">
-                            <a href="tel:${p.contacto}" class="flex-1 flex items-center justify-center gap-2 bg-indigo-600 text-white p-2.5 rounded-xl font-bold text-xs">Llamar</a>
-                            <button onclick="window.open('https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.direccion)}')" class="flex-1 bg-white border border-slate-200 text-slate-700 p-2.5 rounded-xl font-bold text-xs">Mapa</button>
+                        <div class="mb-5 flex gap-2">
+                            <a href="tel:${p.contacto}" class="flex-1 flex items-center justify-center gap-2 bg-indigo-600 text-white p-3 rounded-xl font-bold text-xs shadow-md shadow-indigo-100 active:scale-95 transition-all">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                    <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 005.453 5.454l.774-1.548a1 1 0 011.06-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                                </svg>
+                                Llamar Cliente
+                            </a>
+                            <button onclick="window.open('https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.direccion)}')" class="flex-1 bg-white border border-slate-200 text-slate-700 p-3 rounded-xl font-bold text-xs active:bg-slate-100">
+                                Ver en Mapa
+                            </button>
                         </div>
 
+                        <div class="flex gap-3 overflow-x-auto product-scroll pb-4 px-1">
+                            ${p.articulos.map((art, aIdx) => {
+                                const isChecked = checks.includes(aIdx);
+                                return `
+                                <div onclick="toggleArticulo(${idx}, ${aIdx})" 
+                                     class="flex items-center gap-5 bg-white p-4 rounded-3xl min-w-[290px] border-2 transition-all cursor-pointer ${isChecked ? 'item-vendido border-emerald-500' : 'border-slate-100 shadow-sm'}">
+                                    
+                                    <img src="${art.foto}" 
+                                         class="w-32 h-32 rounded-2xl object-cover bg-slate-100 border border-slate-200 shadow-sm flex-shrink-0">
 
+                                    <div class="flex-1">
+                                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">${art.idArt} (${art.bin})</p>
+                                        <p class="text-[12px] font-black text-slate-800 leading-tight mb-1">${art.cod}</p>
+                                        <p class="text-[10px] font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded inline-block">${fmt(art.precio)}</p>
+                                    </div>
 
-          <div class="flex gap-3 overflow-x-auto product-scroll pb-4 px-2">
-    ${p.articulos.map((art, aIdx) => {
-        const isChecked = checks.includes(aIdx);
-        return `
-        <div onclick="toggleArticulo(${idx}, ${aIdx})" 
-             class="flex items-center gap-5 bg-white p-4 rounded-3xl min-w-[320px] border-2 transition-all ${isChecked ? 'item-vendido border-emerald-500' : 'border-slate-100 shadow-sm'}">
-            
-            <img src="${art.foto}" 
-                 class="w-32 h-32 rounded-2xl object-cover bg-slate-100 border border-slate-200 shadow-sm flex-shrink-0">
-
-            <div class="flex-1">
-                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">${art.idArt}  (${art.bin})</p>
-                <p class="text-[11px] font-black text-slate-800 leading-tight mb-1">${art.cod}</p>
-                <p class="text-[10px] font-black text-indigo-600">${fmt(art.precio)}</p>
-            </div>
-
-            <div class="flex flex-col items-center">
-                ${isChecked ? 
-                    '<span class="text-emerald-500 font-bold text-3xl">✓</span>' : 
-                    '<span class="text-slate-200 font-bold text-3xl">○</span>'
-                }
-            </div>
-        </div>
-    `;}).join('')}
-</div>
+                                    <div class="flex flex-col items-center flex-shrink-0 ml-1">
+                                        ${isChecked ? 
+                                            '<span class="text-emerald-500 font-bold text-4xl mt-[-4px]">✓</span>' : 
+                                            '<span class="text-slate-200 font-bold text-4xl mt-[-4px]">○</span>'
+                                        }
+                                    </div>
+                                </div>
+                            `;}).join('')}
+                        </div>
                         
-                        <div class="mt-4 grid grid-cols-2 gap-3 bg-white p-4 rounded-2xl border border-slate-200">
+                        <div class="mt-5 grid grid-cols-2 gap-3 bg-white p-5 rounded-2xl border border-slate-200 shadow-inner">
+                            <div class="col-span-2 flex justify-between items-center mb-2 border-b pb-3 border-slate-100">
+                                <span class="text-[10px] font-black text-slate-400 uppercase">Total a Cobrar:</span>
+                                <span id="total-pedido-${idx}" class="text-base font-black text-indigo-600">${fmt(montoRealPedido)}</span>
+                            </div>
+                            
                             <div class="col-span-2">
-                                <label class="text-[9px] font-black text-slate-400 uppercase">Método de Pago</label>
-                                <select onchange="guardarEstado(${idx}, 'metodo', this.value)" class="w-full mt-1 bg-slate-50 border-none rounded-lg p-2 text-xs font-bold text-slate-700">
-                                    <option value="1" ${metodoPago=="1"?'selected':''}>1. Efectivo</option>
-                                    <option value="2" ${metodoPago=="2"?'selected':''}>2. Cta Rut (Da)</option>
-                                    <option value="3" ${metodoPago=="3"?'selected':''}>3. Cta TAPP (Da)</option>
-                                    <option value="4" ${metodoPago=="4"?'selected':''}>4. Cta Rut (Lo)</option>
-                                    <option value="5" ${metodoPago=="5"?'selected':''}>5. Cta TAPP (Lo)</option>
+                                <label class="text-[9px] font-black text-slate-400 uppercase tracking-wider">Método de Pago Efectivo</label>
+                                <select onchange="guardarEstado(${idx}, 'metodo', this.value); renderizar();" class="w-full mt-1 bg-slate-50 border border-slate-100 rounded-lg p-2.5 text-xs font-bold text-slate-700 focus:ring-1 focus:ring-indigo-300 focus:border-indigo-300 outline-none">
+                                    ${Object.keys(NOMBRES_METODOS).map(mKey => `
+                                        <option value="${mKey}" ${metodoPago == mKey ? 'selected' : ''}>${mKey}. ${NOMBRES_METODOS[mKey]}</option>
+                                    `).join('')}
                                 </select>
                             </div>
+                            
                             <div>
-                                <label class="text-[9px] font-black text-slate-400 uppercase">Pagado</label>
-                                <input type="number" oninput="actualizarPago(${idx}, this.value)" value="${pagado}" placeholder="$ Pagado" 
-                                       class="w-full mt-1 bg-slate-50 border-none rounded-lg p-2 text-xs font-bold text-emerald-600">
+                                <label class="text-[9px] font-black text-slate-400 uppercase tracking-wider">Monto Pagado</label>
+                                <div class="relative mt-1">
+                                    <span class="absolute left-2.5 top-1/2 translate-y-[-50%] text-xs font-bold text-emerald-700">$</span>
+                                    <input type="number" 
+       onchange="actualizarPago(${idx}, this.value); renderizar();" 
+       value="${pagado}" 
+       placeholder="0" 
+       class="w-full bg-slate-50 border border-slate-100 rounded-lg p-2.5 pl-6 text-xs font-bold text-emerald-600 outline-none">
+
+                                </div>
                             </div>
+                            
                             <div>
-                                <label class="text-[9px] font-black text-slate-400 uppercase">Vuelto</label>
-                                <div class="mt-2 text-xs font-black text-orange-500">${vuelto > 0 ? fmt(vuelto) : "$0"}</div>
+                                <label class="text-[9px] font-black text-slate-400 uppercase tracking-wider">Vuelto a entregar</label>
+                                <div id="vuelto-pedido-${idx}" class="mt-2.5 text-sm font-black ${vuelto < 0 ? 'text-red-500' : 'text-orange-500'}">${vuelto !== 0 ? fmt(vuelto) : "$0"}</div>
                             </div>
                         </div>
 
-                        <div class="mt-4 flex gap-2">
-                            <button onclick="finalizar(${idx})" class="flex-[2] bg-emerald-500 text-white p-4 rounded-xl font-black text-xs uppercase shadow-lg shadow-emerald-100">Entregado</button>
-                            <button onclick="cancelarPedido(${idx})" class="flex-1 bg-red-100 text-red-600 p-4 rounded-xl font-black text-xs uppercase">No Recibe</button>
+                        <div class="mt-5 flex gap-3">
+                            <button onclick="finalizar(${idx})" class="flex-[2] bg-emerald-500 text-white p-4 rounded-2xl font-black text-xs uppercase shadow-lg shadow-emerald-100 active:scale-95 transition-all">Confirmar Entrega</button>
+                            <button onclick="cancelarPedido(${idx})" class="flex-1 bg-red-50 text-red-600 p-4 rounded-2xl font-bold text-xs uppercase active:bg-red-100">No Recibe</button>
                         </div>
                     </div>
                 </div>
             </div>
         `;}).join('');
+
+        // Unir Arqueo + Pedidos y renderizar
+        container.innerHTML = htmlArqueo + htmlPedidos;
     }
 
-    function toggleArticulo(pIdx, aIdx) {
-        let checks = datosPedidos[pIdx].checks || [];
-        if(checks.includes(aIdx)) {
-            checks = checks.filter(i => i !== aIdx);
-        } else {
-            checks.push(aIdx);
-        }
-        guardarEstado(pIdx, 'checks', checks);
-        renderizar(); 
+function toggleArticulo(pIdx, aIdx) {
+    let pedido = datosPedidos[pIdx];
+    let checks = pedido.checks || [];
+    
+    // 1. Lógica de datos
+    if(checks.includes(aIdx)) {
+        checks = checks.filter(i => i !== aIdx);
+    } else {
+        checks.push(aIdx);
+    }
+    pedido.checks = checks;
+    localStorage.setItem('backup_pedidos', JSON.stringify(datosPedidos));
+
+    // 2. Actualización visual del ÍTEM (Sin parpadeo)
+    // Buscamos el elemento del artículo usando un selector por el índice del producto y el artículo
+    const items = document.querySelectorAll('.card-pedido')[0].querySelectorAll('[onclick^="toggleArticulo"]');
+    const itemVisual = items[aIdx];
+    const isChecked = checks.includes(aIdx);actualizarTotalesVista(pIdx);  // Actualiza el precio de ese pedido
+
+    if (isChecked) {
+        itemVisual.classList.add('item-vendido', 'border-emerald-500');
+        itemVisual.classList.remove('border-slate-100');
+        itemVisual.querySelector('.flex-col span').innerHTML = '✓';
+        itemVisual.querySelector('.flex-col span').className = 'text-emerald-500 font-bold text-4xl mt-[-4px]';
+    } else {
+        itemVisual.classList.remove('item-vendido', 'border-emerald-500');
+        itemVisual.classList.add('border-slate-100');
+        itemVisual.querySelector('.flex-col span').innerHTML = '○';
+        itemVisual.querySelector('.flex-col span').className = 'text-slate-200 font-bold text-4xl mt-[-4px]';
     }
 
-    function actualizarPago(idx, valor) {
-        guardarEstado(idx, 'pagado', valor);
-    }
+
+    actualizarTotalesVista(pIdx);  // Actualiza el precio de ese pedido
+    // 3. Actualizar solo los números del resumen inferior
+   actualizarArqueoVista();       // Actualiza el arqueo general arriba
+}
+
+function actualizarPago(idx, valor) {
+    datosPedidos[idx].pagado = valor;
+    localStorage.setItem('backup_pedidos', JSON.stringify(datosPedidos));
+    actualizarTotalesVista(idx); // Solo actualiza los números
+    actualizarArqueoVista();
+}
+
+
 
     function finalizar(idx) {
-        if(confirm("¿Confirmar entrega?")) {
+        const p = datosPedidos[idx];
+        const checks = p.checks || [];
+        
+        // Validación: Debe haber al menos un ítem seleccionado o cobrarse solo envío
+        if(checks.length === 0 && !confirm("No hay artículos seleccionados. ¿Cobrar solo el envío?")) return;
+
+        if(confirm("¿Confirmar entrega y finalizar pedido?")) {
+            // Reproducir sonido (con manejo de promesa para navegadores modernos)
             document.getElementById('audioSuccess').play().catch(()=>{});
+            
             guardarEstado(idx, 'finalizado', true);
             guardarEstado(idx, 'cancelado', false);
-            indiceExpandido = null;
+            indiceExpandido = null; // Colapsar
             renderizar();
         }
     }
 
     function cancelarPedido(idx) {
-        if(confirm("¿Marcar como NO vendido?")) {
+        if(confirm("¿Marcar pedido como NO entregado (Devolución total)?")) {
             guardarEstado(idx, 'cancelado', true);
             guardarEstado(idx, 'finalizado', false);
-            indiceExpandido = null;
+            guardarEstado(idx, 'checks', []); // Limpiar checks al cancelar
+            indiceExpandido = null; // Colapsar
             renderizar();
         }
     }
 
-    
-
+    // Iniciar
     window.onload = inicializarApp;
+
+
+function actualizarTotalesVista(idx) {
+    const p = datosPedidos[idx];
+    const checks = p.checks || [];
+    
+    // Recalcular
+    const sumaArticulos = p.articulos.reduce((acc, art, i) => checks.includes(i) ? acc + art.precio : acc, 0);
+    const montoReal = sumaArticulos + p.envioPrecio;
+    const pagado = parseFloat(p.pagado) || 0;
+    const vuelto = pagado > 0 ? (pagado - montoReal) : 0;
+
+    // Actualizar Textos por ID
+    const elTotal = document.getElementById(`total-pedido-${idx}`);
+    const elVuelto = document.getElementById(`vuelto-pedido-${idx}`);
+
+    if(elTotal) elTotal.innerText = fmt(montoReal);
+    if(elVuelto) {
+        elVuelto.innerText = vuelto !== 0 ? fmt(vuelto) : "$0";
+        elVuelto.className = `mt-2.5 text-sm font-black ${vuelto < 0 ? 'text-red-500' : 'text-orange-500'}`;
+    }
+}
+
+function guardarFondo(valor) {
+    localStorage.setItem('fondo_inicial', valor || 0);
+    renderizar(); // En lugar de llamar solo a la vista, redibujamos para asegurar consistencia
+}
+
+// Modifica tu función actualizarArqueoVista para incluir el nuevo cálculo
+function actualizarArqueoVista() {
+    // Si prefieres no redibujar todo, esta función debe buscar el valor de nuevo
+    const fondoInicial = parseFloat(localStorage.getItem('fondo_inicial')) || 0;
+    
+    // Recalcular solo el efectivo de los pedidos finalizados
+    let efectivoVentas = 0;
+    datosPedidos.forEach(p => {
+        if (p.finalizado && !p.cancelado && (p.metodo === "1" || !p.metodo)) {
+            const checks = p.checks || [];
+            const sumaArt = p.articulos.reduce((acc, art, i) => checks.includes(i) ? acc + art.precio : acc, 0);
+            efectivoVentas += (sumaArt + p.envioPrecio);
+        }
+    });
+
+    const elEfectivoFondo = document.getElementById('arqueo-efectivo-fondo');
+    if (elEfectivoFondo) {
+        elEfectivoFondo.innerText = fmt(efectivoVentas + fondoInicial);
+    }
+}
+
+// --- LÓGICA DE GASTOS ---
+function agregarGasto() {
+    const desc = document.getElementById('gasto-desc').value;
+    const monto = parseFloat(document.getElementById('gasto-monto').value);
+
+    if (desc && monto > 0) {
+        let gastos = JSON.parse(localStorage.getItem('gastos_ruta')) || [];
+        gastos.push({ id: Date.now(), desc, monto });
+        localStorage.setItem('gastos_ruta', JSON.stringify(gastos));
+        
+        // Limpiar inputs
+        document.getElementById('gasto-desc').value = '';
+        document.getElementById('gasto-monto').value = '';
+        
+        renderizar();
+    }
+}
+
+function eliminarGasto(id) {
+    let gastos = JSON.parse(localStorage.getItem('gastos_ruta')) || [];
+    gastos = gastos.filter(g => g.id !== id);
+    localStorage.setItem('gastos_ruta', JSON.stringify(gastos));
+    renderizar();
+}
+
 </script>
 </body>
 </html>
