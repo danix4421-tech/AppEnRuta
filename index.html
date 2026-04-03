@@ -89,8 +89,10 @@
 <audio id="audioSuccess" src="https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3"></audio>
 
 <script>
-    const URL_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQxmMtrLlKEH1uQUNmUvQxXUmFJQNQc46rwfOpKMNzJytrGDRxyMjo_S2DhQIDJmXTv1o6G2fvZQZgi/pub?gid=271238087&single=true&output=csv"; 
-    
+    const URL_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQxmMtrLlKEH1uQUNmUvQxXUmFJQNQc46rwfOpKMNzJytrGDRxyMjo_S2DhQIDJmXTv1o6G2fvZQZgi/pub?gid=271238087&single=true&output=csv";
+    const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbx8PNhw1Z369u-E1f-S7AyQyyYeeYSgk-8eQgXdA2TzuZMMEcmmx6C1WSytpdi1t5rN/exec";
+
+
     // Nombres amigables para métodos de pago
     const NOMBRES_METODOS = {
         "1": "Efectivo",
@@ -259,12 +261,12 @@
                         <input type="number" id="input-fondo" 
                             onchange="guardarFondo(this.value)" 
                             value="${localStorage.getItem('fondo_inicial') || 0}"
-                            class="w-24 text-right bg-white border border-indigo-100 rounded-lg p-1.5 pl-4 text-xs font-black text-indigo-700 outline-none focus:ring-1 focus:ring-indigo-400">
+                            class="w-24 text-right bg-white border border-indigo-100 rounded-lg p-1.5 pl-4 text-[11px] font-black text-indigo-700 outline-none focus:ring-1 focus:ring-indigo-400">
                     </div>
                 </div>
 
                 ${Object.keys(totalesPorMetodo).map(key => `
-                    <div class="flex justify-between items-center bg-white p-3 rounded-xl border border-slate-100">
+                    <div class="flex justify-between items-center bg-white p-2 rounded-xl border border-slate-100">
                         <span class="text-xs font-semibold text-slate-600">${NOMBRES_METODOS[key]}</span>
                         <span class="text-sm font-bold ${totalesPorMetodo[key] > 0 ? 'text-emerald-600' : 'text-slate-400'}">
                             ${fmt(totalesPorMetodo[key])}
@@ -279,7 +281,7 @@
 
                 <div class="pt-2 flex justify-between items-center px-1 border-t border-dashed border-slate-200">
                     <span class="text-[10px] font-black uppercase text-emerald-600 tracking-wider">Efectivo Total + Fondo</span>
-                    <span id="arqueo-efectivo-fondo" class="text-md font-black text-emerald-700">${fmt(efectivoMasFondo)}</span>
+                    <span id="arqueo-efectivo-fondo" class="text-m font-black text-emerald-700">${fmt(efectivoMasFondo)}</span>
                 </div>
             </div>
         </details>
@@ -358,14 +360,14 @@
                                 const isChecked = checks.includes(aIdx);
                                 return `
                                 <div onclick="toggleArticulo(${idx}, ${aIdx})" 
-                                     class="flex items-center gap-5 bg-white p-4 rounded-3xl min-w-[290px] border-2 transition-all cursor-pointer ${isChecked ? 'item-vendido border-emerald-500' : 'border-slate-100 shadow-sm'}">
+                                     class="flex items-center gap-5 bg-white p-4 rounded-3xl min-w-[300px] border-2 transition-all cursor-pointer ${isChecked ? 'item-vendido border-emerald-500' : 'border-slate-100 shadow-sm'}">
                                     
                                     <img src="${art.foto}" 
                                          class="w-32 h-32 rounded-2xl object-cover bg-slate-100 border border-slate-200 shadow-sm flex-shrink-0">
 
                                     <div class="flex-1">
-                                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">${art.idArt} (${art.bin})</p>
-                                        <p class="text-[12px] font-black text-slate-800 leading-tight mb-1">${art.cod}</p>
+                                        <p class="text-[10px] font-bold text-orange-500 uppercase tracking-tighter">${art.idArt} (${art.bin})</p>
+                                        <p class="text-[11px] font-black text-slate-800 leading-tight mb-1">${art.cod}</p>
                                         <p class="text-[10px] font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded inline-block">${fmt(art.precio)}</p>
                                     </div>
 
@@ -472,23 +474,30 @@ function actualizarPago(idx, valor) {
 
 
 
-    function finalizar(idx) {
-        const p = datosPedidos[idx];
-        const checks = p.checks || [];
-        
-        // Validación: Debe haber al menos un ítem seleccionado o cobrarse solo envío
-        if(checks.length === 0 && !confirm("No hay artículos seleccionados. ¿Cobrar solo el envío?")) return;
+   // 3. Modifica tu función finalizar(idx) para que llame a enviarASheets
+function finalizar(idx) {
+    const p = datosPedidos[idx];
+    const checks = p.checks || [];
+    
+    if(checks.length === 0 && !confirm("No hay artículos seleccionados. ¿Cobrar solo el envío?")) return;
 
-        if(confirm("¿Confirmar entrega y finalizar pedido?")) {
-            // Reproducir sonido (con manejo de promesa para navegadores modernos)
-            document.getElementById('audioSuccess').play().catch(()=>{});
-            
-            guardarEstado(idx, 'finalizado', true);
-            guardarEstado(idx, 'cancelado', false);
-            indiceExpandido = null; // Colapsar
-            renderizar();
-        }
+    if(confirm("¿Confirmar entrega y finalizar pedido?")) {
+        document.getElementById('audioSuccess').play().catch(()=>{});
+        
+        guardarEstado(idx, 'finalizado', true);
+        guardarEstado(idx, 'cancelado', false);
+        
+        // --- NUEVO: Enviar datos a Google Sheets ---
+        enviarASheets(idx);
+        // -------------------------------------------
+
+        indiceExpandido = null; 
+        renderizar();
     }
+}
+
+
+
 
     function cancelarPedido(idx) {
         if(confirm("¿Marcar pedido como NO entregado (Devolución total)?")) {
@@ -574,6 +583,41 @@ function eliminarGasto(id) {
     gastos = gastos.filter(g => g.id !== id);
     localStorage.setItem('gastos_ruta', JSON.stringify(gastos));
     renderizar();
+}
+
+// 2. Agrega esta función para procesar el envío
+async function enviarASheets(idx) {
+    const p = datosPedidos[idx];
+    const checks = p.checks || [];
+    
+    // Calcular Monto Real (Artículos marcados + envío)
+    const sumaArticulos = p.articulos.reduce((acc, art, i) => {
+        return checks.includes(i) ? acc + art.precio : acc;
+    }, 0);
+    const montoReal = sumaArticulos + p.envioPrecio;
+    const metodo = p.metodo || "1";
+
+    // El ID que guardamos al sincronizar es el índice de la fila (0 = Fila 2 en Sheets)
+    const numeroFila = p.id + 2; 
+
+    const datos = {
+        fila: numeroFila,
+        montoReal: montoReal,
+        metodo: metodo
+    };
+
+    try {
+        // Usamos mode: 'no-cors' para evitar bloqueos simples de navegador al enviar a Google
+        await fetch(URL_APPS_SCRIPT, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(datos)
+        });
+        console.log("Datos enviados a la cola de Sheets");
+    } catch (e) {
+        console.error("Error al sincronizar con Sheets:", e);
+    }
 }
 
 </script>
