@@ -22,29 +22,24 @@
             overflow-y: auto;
             overscroll-behavior-y: none;
         }
-        
-        /* Estilos para colapsar/expandir tarjetas */
+       
         .is-collapsed .detalle-pedido { display: none; }
         
-        /* Estados de finalización */
         .is-finalized { border-color: #10b981; background-color: #f0fdf4; } /* Emerald */
         .is-finalized .header-principal { opacity: 0.6; }
 
         .is-cancelled { border-color: #ef4444; background-color: #fef2f2; } /* Red */
         .is-cancelled .header-principal { opacity: 0.6; }
         
-        /* Scrollbar sutil para productos */
         .product-scroll::-webkit-scrollbar { height: 4px; }
         .product-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         
-        /* Estilo visual para ítem seleccionado/vendido */
         .item-vendido { border-color: #10b981 !important; background-color: #ecfdf5 !important; transform: scale(0.98); }
 
-        /* Quitar flechas de input number */
+       
         input::-webkit-outer-spin-button,
         input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
-        /* Animación suave para detalles */
         .detalle-pedido {
             animation: slideDown 0.3s ease-out;
         }
@@ -54,8 +49,6 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        
-        /* Estilo para el triángulo del details (Arqueo) */
         summary::-webkit-details-marker { display: none; }
         summary::after {
             content: '→';
@@ -65,35 +58,33 @@
         }
         details[open] summary::after {
             transform: rotate(90deg);
+
         }
+        
     </style>
 </head>
 <body>
-
-<div class="app-container p-4 pb-20">
-    <header class="mb-5 flex justify-between items-center bg-white p-5 rounded-[2rem] shadow-sm border border-slate-200">
+<div class="app-container p-3 pb-16 bg-[#f8fafc]">
+    <header class="mb-2 flex justify-between items-center bg-white p-1 px-4 rounded-2xl border border-slate-100">
         <div>
-            <h1 class="text-2xl font-black text-slate-900 tracking-tighter uppercase">Ruta de Calzado</h1>
-            <p class="text-[10px] font-bold text-indigo-600 uppercase tracking-widest">Panel de Reparto</p>
+            <h1 class="text-l font-bold text-slate-800 leading-none">Ruta Calzado</h1>
         </div>
-        <button onclick="sincronizarDatos()" class="bg-indigo-600 text-white p-4 rounded-2xl shadow-lg active:scale-95 transition-all">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        
+        <button onclick="sincronizarDatos()" class="text-indigo-600 p-2 hover:bg-indigo-50 rounded-xl transition-colors active:scale-90">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
         </button>
     </header>
 
-    <div id="contenedorRuta" class="space-y-4"></div>
+    <div id="contenedorRuta" class="space-y-2"></div>
 </div>
-
 <audio id="audioSuccess" src="https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3"></audio>
 
 <script>
     const URL_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQxmMtrLlKEH1uQUNmUvQxXUmFJQNQc46rwfOpKMNzJytrGDRxyMjo_S2DhQIDJmXTv1o6G2fvZQZgi/pub?gid=271238087&single=true&output=csv";
-    const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbx8PNhw1Z369u-E1f-S7AyQyyYeeYSgk-8eQgXdA2TzuZMMEcmmx6C1WSytpdi1t5rN/exec";
+    const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbzx5ndnloNtvoBB7kSHACMJxaIFQ9sEJwTpFXexmA57jHsAlFEsQmVD5MXNazQxwn9i/exec";
 
-
-    // Nombres amigables para métodos de pago
     const NOMBRES_METODOS = {
         "1": "Efectivo",
         "2": "Cta Rut (Daniel)",
@@ -181,8 +172,6 @@
         localStorage.setItem('backup_pedidos', JSON.stringify(datosPedidos));
     }
 
-
-    // Expandir/Colapsar tarjeta
     function toggleCard(idx) {
         if(indiceExpandido === idx) {
             indiceExpandido = null;
@@ -198,18 +187,15 @@
             window.scrollTo(0,0);
         }
     }
-
-    // --- FUNCIÓN DE RENDERIZADO PRINCIPAL ---
     function renderizar() {
         const container = document.getElementById('contenedorRuta');
         if(!datosPedidos || datosPedidos.length === 0) return;
 
-        // --- LÓGICA DE ARQUEO DE CAJA ---
         const totalesPorMetodo = { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0 };
         let granTotalRuta = 0;
 
         datosPedidos.forEach(p => {
-            // Solo sumar pedidos entregados correctamente
+           
             if (p.finalizado && !p.cancelado) {
                 const checks = p.checks || [];
                 // Calcular Monto Real (artículos marcados + envío)
@@ -224,19 +210,12 @@
             }
         });
 
-        // 2. Cálculos de Gastos
     const listaGastos = JSON.parse(localStorage.getItem('gastos_ruta')) || [];
     const totalGastos = listaGastos.reduce((acc, g) => acc + g.monto, 0);
 
-
-        // NUEVO: Obtener fondo y calcular suma de efectivo
     const fondoInicial = parseFloat(localStorage.getItem('fondo_inicial')) || 0;
     const efectivoMasFondo = totalesPorMetodo["1"] + fondoInicial;
 
-
-
-
-       // --- RENDERIZADO DEL PANEL DE ARQUEO ---
     let htmlArqueo = `
         <details class="mb-5 bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
             <summary class="p-5 list-none cursor-pointer flex justify-between items-center active:bg-slate-50">
@@ -283,26 +262,31 @@
                     <span class="text-[10px] font-black uppercase text-emerald-600 tracking-wider">Efectivo Total + Fondo</span>
                     <span id="arqueo-efectivo-fondo" class="text-m font-black text-emerald-700">${fmt(efectivoMasFondo)}</span>
                 </div>
+
+                <div class="pt-4 mt-4 border-t border-slate-200">
+                    <button onclick="finalizarArqueoRuta()" 
+                            class="w-full bg-slate-900 text-white p-4 rounded-2xl font-black text-xs uppercase shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                        </svg>
+                        Finalizar Arqueo y Validar Ruta
+                    </button>
+                </div>
+                
             </div>
+            
         </details>
     `;
-
-        // --- RENDERIZADO DE PEDIDOS ---
         const pedidosAMostrar = (indiceExpandido !== null) ? [datosPedidos[indiceExpandido]] : datosPedidos;
         
         const htmlPedidos = pedidosAMostrar.map((p, vIdx) => {
-
-
             
-            // Usar el índice real del array original
             const idx = (indiceExpandido !== null) ? indiceExpandido : vIdx;
             
             const isExpanded = indiceExpandido !== null;
             const pagado = p.pagado || "";
             const checks = p.checks || [];
 
-            // --- CÁLCULO DINÁMICO DEL PEDIDO ---
-            // Sumamos solo los artículos marcados como vendidos
             const sumaArticulosPedido = p.articulos.reduce((acc, art, i) => {
                 return checks.includes(i) ? acc + art.precio : acc;
             }, 0);
@@ -343,18 +327,27 @@
 
                 <div class="detalle-pedido border-t border-slate-100 bg-slate-50/30">
                     <div class="p-5">
-                        <div class="mb-5 flex gap-2">
-                            <a href="tel:${p.contacto}" class="flex-1 flex items-center justify-center gap-2 bg-indigo-600 text-white p-3 rounded-xl font-bold text-xs shadow-md shadow-indigo-100 active:scale-95 transition-all">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                    <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 005.453 5.454l.774-1.548a1 1 0 011.06-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
-                                </svg>
-                                Llamar Cliente
-                            </a>
-                            <button onclick="window.open('https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.direccion)}')" class="flex-1 bg-white border border-slate-200 text-slate-700 p-3 rounded-xl font-bold text-xs active:bg-slate-100">
-                                Ver en Mapa
-                            </button>
-                        </div>
+                      <div class="mb-5 grid grid-cols-3 gap-2">
+    <button onclick="accionLlamar(${idx}, '${p.contacto}')" class="flex flex-col items-center justify-center gap-1 bg-indigo-600 text-white p-2.5 rounded-xl font-bold text-[10px] shadow-md active:scale-95 transition-all">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 005.453 5.454l.774-1.548a1 1 0 011.06-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+        </svg>
+        Llamar
+    </button>
 
+                            <button onclick="marcarEstacionado(${idx})" class="flex flex-col items-center justify-center gap-1 bg-white border border-slate-200 text-slate-700 p-2.5 rounded-xl font-bold text-[10px] active:bg-orange-50 transition-colors">
+        <span class="text-base">🅿️</span>
+        Estacionar
+    </button>
+
+                            <button onclick="window.open('https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.direccion)}')" class="flex flex-col items-center justify-center gap-1 bg-white border border-slate-200 text-slate-700 p-2.5 rounded-xl font-bold text-[10px] active:bg-slate-100">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+        Mapa
+    </button>
+</div>
                         <div class="flex gap-3 overflow-x-auto product-scroll pb-4 px-1">
                             ${p.articulos.map((art, aIdx) => {
                                 const isChecked = checks.includes(aIdx);
@@ -424,7 +417,6 @@
             </div>
         `;}).join('');
 
-        // Unir Arqueo + Pedidos y renderizar
         container.innerHTML = htmlArqueo + htmlPedidos;
     }
 
@@ -441,8 +433,6 @@ function toggleArticulo(pIdx, aIdx) {
     pedido.checks = checks;
     localStorage.setItem('backup_pedidos', JSON.stringify(datosPedidos));
 
-    // 2. Actualización visual del ÍTEM (Sin parpadeo)
-    // Buscamos el elemento del artículo usando un selector por el índice del producto y el artículo
     const items = document.querySelectorAll('.card-pedido')[0].querySelectorAll('[onclick^="toggleArticulo"]');
     const itemVisual = items[aIdx];
     const isChecked = checks.includes(aIdx);actualizarTotalesVista(pIdx);  // Actualiza el precio de ese pedido
@@ -461,7 +451,6 @@ function toggleArticulo(pIdx, aIdx) {
 
 
     actualizarTotalesVista(pIdx);  // Actualiza el precio de ese pedido
-    // 3. Actualizar solo los números del resumen inferior
    actualizarArqueoVista();       // Actualiza el arqueo general arriba
 }
 
@@ -472,9 +461,6 @@ function actualizarPago(idx, valor) {
     actualizarArqueoVista();
 }
 
-
-
-   // 3. Modifica tu función finalizar(idx) para que llame a enviarASheets
 function finalizar(idx) {
     const p = datosPedidos[idx];
     const checks = p.checks || [];
@@ -482,22 +468,20 @@ function finalizar(idx) {
     if(checks.length === 0 && !confirm("No hay artículos seleccionados. ¿Cobrar solo el envío?")) return;
 
     if(confirm("¿Confirmar entrega y finalizar pedido?")) {
+        // Sonido de éxito
         document.getElementById('audioSuccess').play().catch(()=>{});
         
+        // Guardar localmente
         guardarEstado(idx, 'finalizado', true);
         guardarEstado(idx, 'cancelado', false);
         
-        // --- NUEVO: Enviar datos a Google Sheets ---
-        enviarASheets(idx);
-        // -------------------------------------------
+        // Sincronizar: Esto enviará Fila, Fase "Entregado", MontoReal y Metodo de Pago
+        enviarASheets(idx, "Entregado");
 
         indiceExpandido = null; 
         renderizar();
     }
 }
-
-
-
 
     function cancelarPedido(idx) {
         if(confirm("¿Marcar pedido como NO entregado (Devolución total)?")) {
@@ -539,7 +523,6 @@ function guardarFondo(valor) {
     renderizar(); // En lugar de llamar solo a la vista, redibujamos para asegurar consistencia
 }
 
-// Modifica tu función actualizarArqueoVista para incluir el nuevo cálculo
 function actualizarArqueoVista() {
     // Si prefieres no redibujar todo, esta función debe buscar el valor de nuevo
     const fondoInicial = parseFloat(localStorage.getItem('fondo_inicial')) || 0;
@@ -585,40 +568,78 @@ function eliminarGasto(id) {
     renderizar();
 }
 
-// 2. Agrega esta función para procesar el envío
-async function enviarASheets(idx) {
+async function enviarASheets(idx, fase = null) {
     const p = datosPedidos[idx];
     const checks = p.checks || [];
-    
-    // Calcular Monto Real (Artículos marcados + envío)
-    const sumaArticulos = p.articulos.reduce((acc, art, i) => {
-        return checks.includes(i) ? acc + art.precio : acc;
-    }, 0);
-    const montoReal = sumaArticulos + p.envioPrecio;
-    const metodo = p.metodo || "1";
-
-    // El ID que guardamos al sincronizar es el índice de la fila (0 = Fila 2 en Sheets)
     const numeroFila = p.id + 2; 
 
     const datos = {
         fila: numeroFila,
-        montoReal: montoReal,
-        metodo: metodo
+        fase: fase,
+        montoReal: null,
+        metodo: null
     };
 
+    if (fase === "Entregado") {
+        const sumaArticulos = p.articulos.reduce((acc, art, i) => {
+            return checks.includes(i) ? acc + art.precio : acc;
+        }, 0);
+        datos.montoReal = sumaArticulos + p.envioPrecio;
+        datos.metodo = p.metodo || "1";
+    }
+
     try {
-        // Usamos mode: 'no-cors' para evitar bloqueos simples de navegador al enviar a Google
+        // IMPORTANTE: Al usar no-cors, enviamos los datos como texto plano
+        // para que Google no rechace la "petición compleja"
         await fetch(URL_APPS_SCRIPT, {
             method: 'POST',
-            mode: 'no-cors',
-            headers: { 'Content-Type': 'application/json' },
+            mode: 'no-cors', 
             body: JSON.stringify(datos)
         });
-        console.log("Datos enviados a la cola de Sheets");
+        console.log("Sincronizado:", datos);
     } catch (e) {
-        console.error("Error al sincronizar con Sheets:", e);
+        console.error("Error:", e);
     }
 }
+
+
+function accionLlamar(idx, contacto) {
+    enviarASheets(idx, "En Proceso");
+    window.location.href = "tel:" + contacto;
+
+}
+
+function marcarEstacionado(idx) {
+    enviarASheets(idx, "Estacionado");
+    
+    // Feedback visual en el botón
+    const btn = event.currentTarget;
+    btn.classList.add('bg-orange-500', 'text-white', 'border-orange-600');
+    btn.innerHTML = `
+        <span class="text-base">🅿️</span>
+        <span class="font-black">En Destino</span>
+    `;
+
+}
+
+
+async function finalizarArqueoRuta() {
+    if(!confirm("¿Deseas validar toda la ruta y finalizar el arqueo?")) return;
+
+    // Enviamos la fase "Validado" para cada pedido en la lista
+    for (let i = 0; i < datosPedidos.length; i++) {
+        if (datosPedidos[i].finalizado || datosPedidos[i].cancelado) {
+             await enviarASheets(i, "Validado");
+        }
+    }
+    
+    alert("Ruta validada y enviada a Sheets.");
+    renderizar();
+}
+
+
+
+
 
 </script>
 </body>
