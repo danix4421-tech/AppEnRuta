@@ -16,13 +16,11 @@
             user-select: none;
             -webkit-tap-highlight-color: transparent;
         }
-
         .app-container {
             height: 100vh;
             overflow-y: auto;
             overscroll-behavior-y: none;
         }
-       
         .is-collapsed .detalle-pedido { display: none; }
         
         .is-finalized { border-color: #10b981; background-color: #f0fdf4; } /* Emerald */
@@ -43,6 +41,24 @@
         .detalle-pedido {
             animation: slideDown 0.3s ease-out;
         }
+
+      /* Animación de parpadeo */
+@keyframes pulse-orange {
+    0% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.7); border-color: #f97316; }
+    70% { box-shadow: 0 0 0 10px rgba(249, 115, 22, 0); border-color: #f97316; }
+    100% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0); border-color: #f97316; }
+}
+
+.pulse-attention { 
+    animation: pulse-orange 1.5s infinite; 
+    border: 3px solid #f97316 !important; 
+}
+
+/* Para los bordes de los productos */
+.pulse-border {
+    animation: pulse-orange 1.5s infinite;
+}
+
 
         @keyframes slideDown {
             from { opacity: 0; transform: translateY(-10px); }
@@ -301,6 +317,10 @@
             const montoRealPedido = sumaArticulosPedido + p.envioPrecio;
             const vuelto = pagado ? (parseFloat(pagado) - montoRealPedido) : 0;
             // -----------------------------------
+            
+            const claseLlamar = (!p.pasoFlujo || p.pasoFlujo === 'llamar') ? 'pulse-attention' : '';
+            const claseEstacionar = (p.pasoFlujo === 'estacionar') ? 'pulse-attention' : '';
+            const clasePago = (p.pasoFlujo === 'pago') ? 'pulse-attention' : '';
 
             const metodoPago = p.metodo || "1";
             let estadoClase = isExpanded ? "" : "is-collapsed";
@@ -335,7 +355,7 @@
                 <div class="detalle-pedido border-t border-slate-100 bg-slate-50/30">
                     <div class="p-5">
                       <div class="mb-5 grid grid-cols-3 gap-2">
-    <button onclick="accionLlamar(${idx}, '${p.contacto}')" class="flex flex-col items-center justify-center gap-1 bg-indigo-600 text-white p-2.5 rounded-xl font-bold text-[10px] shadow-md active:scale-95 transition-all">
+    <button onclick="accionLlamar(${idx}, '${p.contacto}')" class="${claseLlamar} flex flex-col items-center justify-center gap-1 bg-indigo-600 text-white p-2.5 rounded-xl font-bold text-[10px] shadow-md active:scale-95 transition-all ">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
             <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 005.453 5.454l.774-1.548a1 1 0 011.06-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
         </svg>
@@ -350,9 +370,7 @@
         Mapa
             </button>
 
-
-
-                            <button onclick="marcarEstacionado(${idx})" class="flex flex-col items-center justify-center gap-1 bg-white border border-slate-200 text-slate-700 p-2.5 rounded-xl font-bold text-[10px] active:bg-orange-50 transition-colors">
+                            <button onclick="marcarEstacionado(${idx})" class="${claseEstacionar} flex flex-col items-center justify-center gap-1 bg-white border border-slate-200 text-slate-700 p-2.5 rounded-xl font-bold text-[10px] active:bg-orange-50 transition-colors">
                              <span class="text-base">🅿️</span>
                              Estacionar
                             </button>
@@ -362,9 +380,12 @@
                         <div class="flex gap-3 overflow-x-auto product-scroll pb-4 px-1">
                             ${p.articulos.map((art, aIdx) => {
                                 const isChecked = checks.includes(aIdx);
+                                const claseArticulo = (p.pasoFlujo === 'productos' && checks.length === 0) ? 'pulse-border' : '';
+                               
                                 return `
                                 <div onclick="toggleArticulo(${idx}, ${aIdx})" 
-                                     class="flex items-center gap-5 bg-white p-4 rounded-3xl min-w-[300px] border-2 transition-all cursor-pointer ${isChecked ? 'item-vendido border-emerald-500' : 'border-slate-100 shadow-sm'}">
+                                     class="${claseArticulo} flex items-center gap-5 bg-white p-4 rounded-3xl min-w-[300px] border-2 transition-all cursor-pointer ${isChecked ? 'item-vendido border-emerald-500' : 'border-slate-100 shadow-sm'}">
+
                                     
                                     <img src="${art.foto}" 
                                          class="w-32 h-32 rounded-2xl object-cover bg-slate-100 border border-slate-200 shadow-sm flex-shrink-0">
@@ -393,7 +414,7 @@
                             
                             <div class="col-span-2">
                                 <label class="text-[9px] font-black text-slate-400 uppercase tracking-wider">Método de Pago Efectivo</label>
-                                <select onchange="guardarEstado(${idx}, 'metodo', this.value); renderizar();" class="w-full mt-1 bg-slate-50 border border-slate-100 rounded-lg p-2.5 text-xs font-bold text-slate-700 focus:ring-1 focus:ring-indigo-300 focus:border-indigo-300 outline-none">
+                                <select onchange="guardarEstado(${idx}, 'metodo', this.value); renderizar();" class="${clasePago} w-full mt-1 bg-slate-50 border border-slate-100 rounded-lg p-2.5 text-xs font-bold text-slate-700 focus:ring-1 focus:ring-indigo-300 focus:border-indigo-300 outline-none">
                                     ${Object.keys(NOMBRES_METODOS).map(mKey => `
                                         <option value="${mKey}" ${metodoPago == mKey ? 'selected' : ''}>${mKey}. ${NOMBRES_METODOS[mKey]}</option>
                                     `).join('')}
@@ -442,7 +463,14 @@ function toggleArticulo(pIdx, aIdx) {
         checks.push(aIdx);
     }
     pedido.checks = checks;
+
+    // 3. Al seleccionar un producto, pasar el parpadeo al Método de Pago
+    if(checks.length > 0) {
+        pedido.pasoFlujo = 'pago';
+    }
+
     localStorage.setItem('backup_pedidos', JSON.stringify(datosPedidos));
+    renderizar(); // Renderizamos para mover las animaciones
 
     const items = document.querySelectorAll('.card-pedido')[0].querySelectorAll('[onclick^="toggleArticulo"]');
     const itemVisual = items[aIdx];
@@ -459,7 +487,6 @@ function toggleArticulo(pIdx, aIdx) {
         itemVisual.querySelector('.flex-col span').innerHTML = '○';
         itemVisual.querySelector('.flex-col span').className = 'text-slate-200 font-bold text-4xl mt-[-4px]';
     }
-
 
     actualizarTotalesVista(pIdx);  // Actualiza el precio de ese pedido
    actualizarArqueoVista();       // Actualiza el arqueo general arriba
@@ -613,11 +640,14 @@ async function enviarASheets(idx, fase = null) {
     }
 }
 
-
 function accionLlamar(idx, contacto) {
     enviarASheets(idx, "En Proceso");
+    
+    // 1. Quitar parpadeo a llamar y pasar a Estacionar
+    datosPedidos[idx].pasoFlujo = 'estacionar';
+    renderizar();
+    
     window.location.href = "tel:" + contacto;
-
 }
 
 function marcarEstacionado(idx) {
@@ -630,9 +660,12 @@ function marcarEstacionado(idx) {
         <span class="text-base">🅿️</span>
         <span class="font-black">En Destino</span>
     `;
+ 
+    // 2. Quitar parpadeo a estacionar y pasar a productos
+    datosPedidos[idx].pasoFlujo = 'productos';
+    renderizar();
 
 }
-
 
 async function finalizarArqueoRuta() {
     if(!confirm("¿Deseas validar toda la ruta y finalizar el arqueo?")) return;
@@ -647,10 +680,6 @@ async function finalizarArqueoRuta() {
     alert("Ruta validada y enviada a Sheets.");
     renderizar();
 }
-
-
-
-
 
 </script>
 </body>
