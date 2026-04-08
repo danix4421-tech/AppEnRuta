@@ -10,7 +10,7 @@
         :root { scroll-behavior: smooth; }
         
         body { 
-            font-family: 'Inter', sans-serif; 
+            font-family: 'Roboto', sans-serif; 
             background-color: #f1f5f9; /* Slate 100 */
             overscroll-behavior-y: none; 
             user-select: none;
@@ -85,8 +85,7 @@
         <div class="max-w-md mx-auto flex justify-between items-center">
             <div>
                 <div class="flex items-center gap-2">
-                    <span class="bg-indigo-600 text-white p-1 rounded-lg text-xs font-bold">Z</span>
-                    <h1 class="text-xl font-extrabold tracking-tight text-slate-900 inline">Control En Ruta</h1>
+                    <h1 class="text-xl font-extrabold tracking-tight text-slate-900 inline">En Ruta</h1>
                 </div>
                
             </div>
@@ -273,15 +272,15 @@
                     <div>
                         <h2 class="text-md font-bold text-slate-800 leading-tight">${p.cliente}</h2>
                         <p class="text-[10px] font-medium text-slate-500 truncate ${isExpanded ? '' : 'w-52'}">${p.direccion}</p>
-                        <p class="text-[8px] font-bold text-indigo-600 uppercase mt-1 tracking-tighter">${p.horario}</p>
+                        <p class="text-[8px] font-bold text-slate-500 uppercase mt-1 tracking-tighter">${p.horario}</p>
                     </div>
                 </div>
                 
                 <div class="text-right">
-                    <div class="text-[18px] font-black ${p.cancelado ? 'text-red-500' : 'text-slate-700'} leading-none">
+                    <div class="text-[16px] font-black ${p.cancelado ? 'text-red-500' : 'text-slate-700'} leading-none">
                         <span class="text-[10px] text-slate-700 font-bold"></span> ${fmt(montoRealPedido)}
                     </div>
-                    <p class="text-[8px] font-bold text-slate-400 mt-0.5">Envío: ${fmt(p.envioPrecio)}</p>
+                    <p class="text-[9px] font-bold text-slate-400 mt-0.5">Envío: ${fmt(p.envioPrecio)}</p>
                    <div class="mt-1 flex justify-end items-center gap-1">
         ${p.finalizado ? `
             <span class="text-[10px] font-bold ${p.cancelado ? 'text-red-500' : 'text-emerald-500'}">
@@ -305,7 +304,7 @@
             <div class="detalle-pedido border-t border-slate-100 bg-slate-50/30">
                 <div class="p-4">
                     <div class="mb-3 grid grid-cols-3 gap-2">
-                        <button onclick="accionLlamar(${idx}, '${p.contacto}')" class="${claseLlamar} flex flex-col items-center justify-center gap-1 bg-white border border-slate-200 text-emerald-700 p-2.5 rounded-xl font-bold text-[10px] shadow-md active:scale-95 transition-all ">
+                        <button onclick="accionLlamar(${idx}, '${p.contacto}')" class="${claseLlamar} flex flex-col items-center justify-center gap-1 bg-white border border-slate-200 text-slate-700 p-2.5 rounded-xl font-bold text-[10px] shadow-md active:scale-95 transition-all ">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                 <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 005.453 5.454l.774-1.548a1 1 0 011.06-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
                             </svg>
@@ -337,9 +336,9 @@
                                 <img src="${art.foto}" 
                                      class="w-24 h-26 rounded-2xl object-cover bg-slate-100 border border-slate-200 shadow-sm flex-shrink-0">
                                 <div class="flex-1">
-                                    <p class="text-[10px] font-bold text-orange-500 uppercase tracking-tighter">${art.idArt} (${art.bin})</p>
+                                    <p class="text-[10px] text-slate-400  tracking-tighter">${art.idArt} (${art.bin})</p>
                                     <p class="text-[11px] font-black text-slate-800 leading-tight mb-1">${art.cod}</p>
-                                    <p class="text-[10px] font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded inline-block">${fmt(art.precio)}</p>
+                                    <p class="text-[10px] font-black text-slate-700 py-0.5 rounded inline-block">${fmt(art.precio)}</p>
                                 </div>
                                 <div class="flex flex-col items-center flex-shrink-0 ml-1">
                                     ${isChecked ? 
@@ -354,7 +353,7 @@
                     <div class="mt-5 grid grid-cols-2 gap-3 bg-white p-5 rounded-2xl border border-slate-200 shadow-inner">
                         <div class="col-span-2 flex justify-between items-center mb-2 border-b pb-3 border-slate-100">
                             <span class="text-[10px] font-black text-slate-700 uppercase">Total a Cobrar:</span>
-                            <span id="total-pedido-${idx}" class="text-base font-black text-indigo-600">${fmt(montoRealPedido)}</span>
+                            <span id="total-pedido-${idx}" class="text-base font-black text-slate-700">${fmt(montoRealPedido)}</span>
                         </div>
                         
                         <div class="col-span-2">
@@ -385,8 +384,8 @@
                     </div>
 
                     <div class="mt-5 flex gap-3">
-                        <button onclick="finalizar(${idx})" class="flex-[2] bg-emerald-500 text-white p-4 rounded-2xl font-black text-xs uppercase shadow-lg shadow-emerald-100 active:scale-95 transition-all">Confirmar Entrega</button>
-                        <button onclick="cancelarPedido(${idx})" class="flex-1 bg-red-50 text-red-600 p-4 rounded-2xl font-bold text-xs uppercase active:bg-red-100">No Recibe</button>
+                        <button onclick="finalizar(${idx})" class="flex-[2] bg-orange-500 text-white p-4 rounded-2xl font-black text-xs uppercase shadow-lg shadow-emerald-100 active:scale-95 transition-all">Confirmar Entrega</button>
+                        <button onclick="cancelarPedido(${idx})" class="flex-1 bg-slate-50 text-slate-600 p-4  border rounded-2xl font-bold text-xs uppercase active:bg-red-100">Cancelar</button>
                     </div>
                 </div>
             </div>
