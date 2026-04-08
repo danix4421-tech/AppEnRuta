@@ -80,15 +80,15 @@
     </style>
 </head>
 <body>
-<div class="app-container p-3 pb-16 bg-[#f8fafc]">
-    <header class="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-slate-200 px-6 py-4">
+<div class="app-container p-3 pb-10 bg-[#f8fafc]">
+    <header class="bg-white/80 backdrop-blur-md sticky top-0 z-40 border-b border-slate-200 px-6 py-1 mb-1">
         <div class="max-w-md mx-auto flex justify-between items-center">
             <div>
                 <div class="flex items-center gap-2">
                     <span class="bg-indigo-600 text-white p-1 rounded-lg text-xs font-bold">Z</span>
-                    <h1 class="text-xl font-extrabold tracking-tight text-slate-900">LOGISTICS</h1>
+                    <h1 class="text-xl font-extrabold tracking-tight text-slate-900 inline">Control En Ruta</h1>
                 </div>
-                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-[0.15em]">Control En Ruta</p>
+               
             </div>
             <button onclick="sincronizarDatos()" class="bg-slate-100 p-2.5 rounded-full active:rotate-180 transition-all duration-700 border border-slate-200 shadow-sm active-tap">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -267,7 +267,7 @@
 
         return `
         <div class="card-pedido card-anim bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden ${estadoClase}">
-            <div class="header-principal p-5 flex justify-between items-start cursor-pointer active:bg-slate-50" onclick="toggleCard(${idx})">
+            <div class="header-principal p-3 flex justify-between items-start cursor-pointer active:bg-slate-50" onclick="toggleCard(${idx})">
                 <div class="flex items-center gap-3">
                     <span class="${p.cancelado ? 'bg-red-500' : 'bg-slate-900'} text-white w-9 h-9 rounded-xl flex items-center justify-center font-black text-sm flex-shrink-0">
                         ${isExpanded ? '←' : p.idRuta}
@@ -281,10 +281,10 @@
                 
                 <div class="text-right">
                     <div class="text-[12px] font-black ${p.cancelado ? 'text-red-500' : 'text-slate-700'} leading-none">
-                        <span class="text-[9px] text-slate-700 font-bold"></span> ${fmt(montoRealPedido)}
+                        <span class="text-[10px] text-slate-700 font-bold"></span> ${fmt(montoRealPedido)}
                     </div>
                     <p class="text-[8px] font-bold text-slate-400 mt-0.5">Envío: ${fmt(p.envioPrecio)}</p>
-                   <div class="mt-2 flex justify-end items-center gap-1">
+                   <div class="mt-1 flex justify-end items-center gap-1">
         ${p.finalizado ? `
             <span class="text-[10px] font-bold ${p.cancelado ? 'text-red-500' : 'text-emerald-500'}">
                 ${p.horaFinalizado || ''}
@@ -305,8 +305,8 @@
             </div>
 
             <div class="detalle-pedido border-t border-slate-100 bg-slate-50/30">
-                <div class="p-5">
-                    <div class="mb-5 grid grid-cols-3 gap-2">
+                <div class="p-4">
+                    <div class="mb-3 grid grid-cols-3 gap-2">
                         <button onclick="accionLlamar(${idx}, '${p.contacto}')" class="${claseLlamar} flex flex-col items-center justify-center gap-1 bg-white border border-slate-200 text-emerald-700 p-2.5 rounded-xl font-bold text-[10px] shadow-md active:scale-95 transition-all ">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                 <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 005.453 5.454l.774-1.548a1 1 0 011.06-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
