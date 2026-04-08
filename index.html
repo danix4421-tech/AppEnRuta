@@ -193,8 +193,6 @@
         localStorage.setItem('backup_pedidos', JSON.stringify(datosPedidos));
     }
 
-
-    
     function toggleCard(idx) {
         if(indiceExpandido === idx) {
             indiceExpandido = null;
@@ -266,20 +264,20 @@
         if(p.cancelado) estadoClase += " is-cancelled";
 
         return `
-        <div class="card-pedido card-anim bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden ${estadoClase}">
-            <div class="header-principal p-3 flex justify-between items-start cursor-pointer active:bg-slate-50" onclick="toggleCard(${idx})">
+        <div class="card-pedido card-anim bg-white rounded-[1rem] border border-slate-200 shadow-sm overflow-hidden ${estadoClase}">
+            <div class="header-principal p-4 flex justify-between items-start cursor-pointer active:bg-slate-50" onclick="toggleCard(${idx})">
                 <div class="flex items-center gap-3">
                     <span class="${p.cancelado ? 'bg-red-500' : 'bg-slate-900'} text-white w-9 h-9 rounded-xl flex items-center justify-center font-black text-sm flex-shrink-0">
                         ${isExpanded ? '←' : p.idRuta}
                     </span>
                     <div>
                         <h2 class="text-md font-bold text-slate-800 leading-tight">${p.cliente}</h2>
-                        <p class="text-[11px] font-medium text-slate-500 truncate ${isExpanded ? '' : 'w-52'}">${p.direccion}</p>
+                        <p class="text-[10px] font-medium text-slate-500 truncate ${isExpanded ? '' : 'w-52'}">${p.direccion}</p>
                         <p class="text-[8px] font-bold text-indigo-600 uppercase mt-1 tracking-tighter">${p.horario}</p>
                     </div>
                 </div>
                 
-                <div class="text-right px-2">
+                <div class="text-right">
                     <div class="text-[16px] font-black ${p.cancelado ? 'text-red-500' : 'text-slate-700'} leading-none">
                         <span class="text-[10px] text-slate-700 font-bold"></span> ${fmt(montoRealPedido)}
                     </div>
